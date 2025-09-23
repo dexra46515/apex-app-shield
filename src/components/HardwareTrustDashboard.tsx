@@ -314,7 +314,7 @@ const HardwareTrustDashboard = () => {
                             Device: {attestation.device_fingerprint.substring(0, 16)}...
                           </p>
                           <p className="text-xs text-slate-400">
-                             {attestation.tmp_version && `TPM ${attestation.tpm_version}`}
+                             {attestation.tpm_version && `TPM ${attestation.tpm_version}`}
                             {attestation.tee_type && ` • ${attestation.tee_type}`}
                             {attestation.hardware_verified && ' • Hardware Verified'}
                           </p>
