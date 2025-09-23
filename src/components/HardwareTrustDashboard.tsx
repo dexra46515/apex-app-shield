@@ -15,10 +15,12 @@ import {
   FileCheck,
   Activity,
   Eye,
-  Settings
+  Settings,
+  Users
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import CustomerIntegrationDashboard from './CustomerIntegrationDashboard';
 
 interface HardwareTrustMetrics {
   device_trust_distribution: Record<string, number>;
@@ -335,6 +337,10 @@ const HardwareTrustDashboard = () => {
           <TabsTrigger value="logs" className="data-[state=active]:bg-slate-700">
             Hardware-Signed Logs
           </TabsTrigger>
+          <TabsTrigger value="customer-integration" className="data-[state=active]:bg-slate-700">
+            <Users className="w-4 h-4 mr-2" />
+            Customer Integration
+          </TabsTrigger>
           <TabsTrigger value="integration" className="data-[state=active]:bg-slate-700">
             WAF Integration
           </TabsTrigger>
@@ -633,6 +639,12 @@ const HardwareTrustDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="customer-integration" className="space-y-4">
+          <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6">
+            <CustomerIntegrationDashboard />
+          </div>
         </TabsContent>
 
         <TabsContent value="integration" className="space-y-4">
