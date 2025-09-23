@@ -175,40 +175,40 @@ const AdvancedSecurityDashboard = () => {
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 bg-slate-900 min-h-screen p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent">
             Advanced Security Features
           </h1>
-          <p className="text-muted-foreground">Next-generation security with quantum-safe protection and AI-powered threat prediction</p>
+          <p className="text-slate-300 text-lg mt-2">Next-generation security with quantum-safe protection and AI-powered threat prediction</p>
         </div>
-        <Badge variant="outline" className="text-lg px-4 py-2">
-          <Shield className="h-4 w-4 mr-2" />
+        <Badge variant="outline" className="text-lg px-4 py-2 border-green-400 text-green-400">
+          <Shield className="h-5 w-5 mr-2" />
           All Systems Operational
         </Badge>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Self-Healing APIs */}
-        <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+        <Card className="border-green-300 bg-gradient-to-br from-green-100 to-emerald-100 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Self-Healing APIs</CardTitle>
-            <Zap className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-lg font-bold text-green-800">Self-Healing APIs</CardTitle>
+            <Zap className="h-6 w-6 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-700">{selfHealingStatus.healthScore}%</div>
-            <p className="text-xs text-muted-foreground">System Health Score</p>
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Active Instances:</span>
-                <span className="font-medium">{selfHealingStatus.activeInstances}</span>
+            <div className="text-3xl font-bold text-green-800 mb-2">{selfHealingStatus.healthScore}%</div>
+            <p className="text-sm text-green-700 font-medium mb-4">System Health Score</p>
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-between text-sm text-green-800">
+                <span className="font-medium">Active Instances:</span>
+                <span className="font-bold">{selfHealingStatus.activeInstances}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Auto-Rollbacks Today:</span>
-                <span className="font-medium">{selfHealingStatus.rolledBackToday}</span>
+              <div className="flex justify-between text-sm text-green-800">
+                <span className="font-medium">Auto-Rollbacks Today:</span>
+                <span className="font-bold">{selfHealingStatus.rolledBackToday}</span>
               </div>
-              <Button onClick={triggerSelfHealing} size="sm" className="w-full mt-2">
+              <Button onClick={triggerSelfHealing} size="sm" className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white font-medium">
                 Trigger Manual Healing
               </Button>
             </div>
@@ -216,14 +216,14 @@ const AdvancedSecurityDashboard = () => {
         </Card>
 
         {/* Quantum-Safe Crypto */}
-        <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <Card className="border-blue-300 bg-gradient-to-br from-blue-100 to-indigo-100 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Quantum-Safe Crypto</CardTitle>
-            <Lock className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-lg font-bold text-blue-800">Quantum-Safe Crypto</CardTitle>
+            <Lock className="h-6 w-6 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-700">{quantumSafeStatus.migrationProgress}%</div>
-            <p className="text-xs text-muted-foreground">PQC Migration Complete</p>
+            <div className="text-3xl font-bold text-blue-800 mb-2">{quantumSafeStatus.migrationProgress}%</div>
+            <p className="text-sm text-blue-700 font-medium mb-4">PQC Migration Complete</p>
             <div className="mt-4 space-y-2">
               <Progress value={quantumSafeStatus.migrationProgress} className="h-2" />
               <div className="text-xs text-muted-foreground">
@@ -237,24 +237,24 @@ const AdvancedSecurityDashboard = () => {
         </Card>
 
         {/* Predictive Attack Modeling */}
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50">
+        <Card className="border-purple-300 bg-gradient-to-br from-purple-100 to-violet-100 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">AI Threat Prediction</CardTitle>
-            <Brain className="h-4 w-4 text-purple-500" />
+            <CardTitle className="text-lg font-bold text-purple-800">AI Threat Prediction</CardTitle>
+            <Brain className="h-6 w-6 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-700">{predictiveModeling.accuracyRate}%</div>
-            <p className="text-xs text-muted-foreground">Prediction Accuracy</p>
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Threats Forecasted:</span>
-                <span className="font-medium">{predictiveModeling.threatsForecasted}</span>
+            <div className="text-3xl font-bold text-purple-800 mb-2">{predictiveModeling.accuracyRate}%</div>
+            <p className="text-sm text-purple-700 font-medium mb-4">Prediction Accuracy</p>
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-between text-sm text-purple-800">
+                <span className="font-medium">Threats Forecasted:</span>
+                <span className="font-bold">{predictiveModeling.threatsForecasted}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Attack Vectors:</span>
-                <span className="font-medium">{predictiveModeling.vectorsIdentified}</span>
+              <div className="flex justify-between text-sm text-purple-800">
+                <span className="font-medium">Attack Vectors:</span>
+                <span className="font-bold">{predictiveModeling.vectorsIdentified}</span>
               </div>
-              <Button onClick={initiatePredictiveAnalysis} size="sm" className="w-full mt-2">
+              <Button onClick={initiatePredictiveAnalysis} size="sm" className="w-full mt-3 bg-purple-600 hover:bg-purple-700 text-white font-medium">
                 Run AI Analysis
               </Button>
             </div>
@@ -262,24 +262,24 @@ const AdvancedSecurityDashboard = () => {
         </Card>
 
         {/* Zero-Knowledge Proofs */}
-        <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+        <Card className="border-indigo-300 bg-gradient-to-br from-indigo-100 to-purple-100 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Zero-Knowledge Proofs</CardTitle>
-            <Eye className="h-4 w-4 text-indigo-500" />
+            <CardTitle className="text-lg font-bold text-indigo-800">Zero-Knowledge Proofs</CardTitle>
+            <Eye className="h-6 w-6 text-indigo-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-indigo-700">{zkProofs.complianceScore}%</div>
-            <p className="text-xs text-muted-foreground">Compliance Score</p>
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Proofs Generated:</span>
-                <span className="font-medium">{zkProofs.proofsGenerated}</span>
+            <div className="text-3xl font-bold text-indigo-800 mb-2">{zkProofs.complianceScore}%</div>
+            <p className="text-sm text-indigo-700 font-medium mb-4">Compliance Score</p>
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-between text-sm text-indigo-800">
+                <span className="font-medium">Proofs Generated:</span>
+                <span className="font-bold">{zkProofs.proofsGenerated}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Verification Time:</span>
-                <span className="font-medium">{zkProofs.verificationTime.toFixed(3)}ms</span>
+              <div className="flex justify-between text-sm text-indigo-800">
+                <span className="font-medium">Verification Time:</span>
+                <span className="font-bold">{zkProofs.verificationTime.toFixed(3)}ms</span>
               </div>
-              <Button onClick={generateZKProof} size="sm" className="w-full mt-2">
+              <Button onClick={generateZKProof} size="sm" className="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium">
                 Generate Proof
               </Button>
             </div>
@@ -287,24 +287,24 @@ const AdvancedSecurityDashboard = () => {
         </Card>
 
         {/* Client-Side Protection */}
-        <Card className="border-red-200 bg-gradient-to-br from-red-50 to-pink-50">
+        <Card className="border-red-300 bg-gradient-to-br from-red-100 to-pink-100 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Client-Side Protection</CardTitle>
-            <Shield className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-lg font-bold text-red-800">Client-Side Protection</CardTitle>
+            <Shield className="h-6 w-6 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-700">{clientSideProtection.browserIntegrity}%</div>
-            <p className="text-xs text-muted-foreground">Browser Integrity</p>
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>JS Injections Blocked:</span>
-                <span className="font-medium">{clientSideProtection.jsInjectionBlocked}</span>
+            <div className="text-3xl font-bold text-red-800 mb-2">{clientSideProtection.browserIntegrity}%</div>
+            <p className="text-sm text-red-700 font-medium mb-4">Browser Integrity</p>
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-between text-sm text-red-800">
+                <span className="font-medium">JS Injections Blocked:</span>
+                <span className="font-bold">{clientSideProtection.jsInjectionBlocked}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Magecart Stopped:</span>
-                <span className="font-medium">{clientSideProtection.magecartAttempts}</span>
+              <div className="flex justify-between text-sm text-red-800">
+                <span className="font-medium">Magecart Stopped:</span>
+                <span className="font-bold">{clientSideProtection.magecartAttempts}</span>
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-sm text-red-700 font-medium">
                 Protected: {clientSideProtection.protectedDomains} domains
               </div>
             </div>
@@ -312,26 +312,26 @@ const AdvancedSecurityDashboard = () => {
         </Card>
 
         {/* GraphQL Security */}
-        <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
+        <Card className="border-teal-300 bg-gradient-to-br from-teal-100 to-cyan-100 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">GraphQL Security</CardTitle>
-            <Code className="h-4 w-4 text-teal-500" />
+            <CardTitle className="text-lg font-bold text-teal-800">GraphQL Security</CardTitle>
+            <Code className="h-6 w-6 text-teal-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-teal-700">{graphqlSecurity.anomaliesDetected}</div>
-            <p className="text-xs text-muted-foreground">Anomalies Detected</p>
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Queries Analyzed:</span>
-                <span className="font-medium">{graphqlSecurity.queriesAnalyzed.toLocaleString()}</span>
+            <div className="text-3xl font-bold text-teal-800 mb-2">{graphqlSecurity.anomaliesDetected}</div>
+            <p className="text-sm text-teal-700 font-medium mb-4">Anomalies Detected</p>
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-between text-sm text-teal-800">
+                <span className="font-medium">Queries Analyzed:</span>
+                <span className="font-bold">{graphqlSecurity.queriesAnalyzed.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Depth Violations:</span>
-                <span className="font-medium">{graphqlSecurity.depthLimitViolations}</span>
+              <div className="flex justify-between text-sm text-teal-800">
+                <span className="font-medium">Depth Violations:</span>
+                <span className="font-bold">{graphqlSecurity.depthLimitViolations}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Rate Limits:</span>
-                <span className="font-medium">{graphqlSecurity.rateLimitHits}</span>
+              <div className="flex justify-between text-sm text-teal-800">
+                <span className="font-medium">Rate Limits:</span>
+                <span className="font-bold">{graphqlSecurity.rateLimitHits}</span>
               </div>
             </div>
           </CardContent>
@@ -339,20 +339,20 @@ const AdvancedSecurityDashboard = () => {
       </div>
 
       <Tabs defaultValue="realtime" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="realtime">Real-Time Monitoring</TabsTrigger>
-          <TabsTrigger value="predictions">Attack Predictions</TabsTrigger>
-          <TabsTrigger value="quantum">Quantum Readiness</TabsTrigger>
-          <TabsTrigger value="compliance">ZK Compliance</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700">
+          <TabsTrigger value="realtime" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Real-Time Monitoring</TabsTrigger>
+          <TabsTrigger value="predictions" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Attack Predictions</TabsTrigger>
+          <TabsTrigger value="quantum" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Quantum Readiness</TabsTrigger>
+          <TabsTrigger value="compliance" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">ZK Compliance</TabsTrigger>
         </TabsList>
 
         <TabsContent value="realtime" className="space-y-4">
-          <Card>
+          <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
-              <CardTitle>Advanced Security Metrics</CardTitle>
-              <CardDescription>Real-time performance of next-generation security features</CardDescription>
+              <CardTitle className="text-xl font-bold text-white">Advanced Security Metrics</CardTitle>
+              <CardDescription className="text-slate-300">Real-time performance of next-generation security features</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-slate-800">
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={realTimeData}>
                   <CartesianGrid strokeDasharray="3 3" />

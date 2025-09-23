@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import SecurityDashboard from '@/components/SecurityDashboard';
+import { AdvancedDifferentiatorsPanel } from '@/components/AdvancedDifferentiatorsPanel';
 import AdvancedSecurityDashboard from '@/components/AdvancedSecurityDashboard';
 import WAFManagement from '@/components/WAFManagement';
 import CustomerOnboarding from '@/components/CustomerOnboarding';
@@ -36,9 +37,10 @@ const Index = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
               Enterprise WAF Security Platform
             </h1>
-            <TabsList className="grid grid-cols-7 w-[1400px] bg-slate-800 border-slate-700">
+            <TabsList className="grid grid-cols-8 w-[1600px] bg-slate-800 border-slate-700">
               <TabsTrigger value="standard" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Dashboard</TabsTrigger>
-              <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced Security</TabsTrigger>
+              <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced</TabsTrigger>
+              <TabsTrigger value="advanced-security" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced Security</TabsTrigger>
               <TabsTrigger value="hardware" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Hardware Trust</TabsTrigger>
               <TabsTrigger value="waf-management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">WAF Mgmt</TabsTrigger>
               <TabsTrigger value="management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Management</TabsTrigger>
@@ -52,6 +54,10 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="advanced">
+            <AdvancedDifferentiatorsPanel />
+          </TabsContent>
+
+          <TabsContent value="advanced-security">
             <AdvancedSecurityDashboard />
           </TabsContent>
 
