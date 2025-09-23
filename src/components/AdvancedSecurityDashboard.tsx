@@ -31,6 +31,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import ComplianceReports from './ComplianceReports';
 import HoneypotManagement from './HoneypotManagement';
+import CustomerSpecificCompliance from './CustomerSpecificCompliance';
+import CustomerAdaptiveRules from './CustomerAdaptiveRules';
+import CustomerSIEMAnalytics from './CustomerSIEMAnalytics';
 
 interface AdvancedSecurityStats {
   aiAnomalies: number;
@@ -524,57 +527,11 @@ const AdvancedSecurityDashboard = () => {
         </TabsContent>
 
         <TabsContent value="compliance" className="space-y-4">
-          <ComplianceReports refreshToken={reportsRefresh} />
+          <CustomerSpecificCompliance />
         </TabsContent>
 
         <TabsContent value="adaptive" className="space-y-4">
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Zap className="w-5 h-5 text-green-400" />
-                Adaptive Security Rules
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Self-learning rules that adapt to attack patterns automatically
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-300">{stats.adaptiveRules}</div>
-                    <div className="text-sm text-slate-400">Active Rules</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-300">127</div>
-                    <div className="text-sm text-slate-400">Patterns Learned</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-300">94%</div>
-                    <div className="text-sm text-slate-400">Accuracy Rate</div>
-                  </div>
-                </div>
-                
-                <div className="bg-slate-700/50 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-white mb-2">Recent Adaptive Actions</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-300">SQL Injection Pattern Blocked</span>
-                      <span className="text-green-400">Auto-created rule</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-300">Rate Limit Adjusted for /api/*</span>
-                      <span className="text-blue-400">Learning mode</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-300">XSS Vector Detected & Blocked</span>
-                      <span className="text-red-400">Critical rule</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <CustomerAdaptiveRules />
         </TabsContent>
 
         <TabsContent value="geo-blocking" className="space-y-4">
@@ -604,15 +561,15 @@ const AdvancedSecurityDashboard = () => {
                 <div className="bg-slate-700/50 rounded-lg p-4">
                   <h4 className="text-sm font-medium text-white mb-2">Active Geo Restrictions</h4>
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center justify-between">
                       <span className="text-slate-300">🇨🇳 China</span>
                       <Badge variant="destructive">Blocked</Badge>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center justify-between">
                       <span className="text-slate-300">🇷🇺 Russia</span>
                       <Badge variant="destructive">Blocked</Badge>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center justify-between">
                       <span className="text-slate-300">🏴‍☠️ Tor Network</span>
                       <Badge variant="destructive">Blocked</Badge>
                     </div>
@@ -624,88 +581,7 @@ const AdvancedSecurityDashboard = () => {
         </TabsContent>
 
         <TabsContent value="builtin-siem" className="space-y-4">
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Database className="w-5 h-5 text-cyan-400" />
-                Built-in SIEM Analytics
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Comprehensive security event management and analytics built into the WAF platform
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-cyan-300">{stats.siemEvents}</div>
-                    <div className="text-sm text-slate-400">Security Events</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-300">42</div>
-                    <div className="text-sm text-slate-400">Correlation Rules</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-300">15</div>
-                    <div className="text-sm text-slate-400">Active Alerts</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-300">7</div>
-                    <div className="text-sm text-slate-400">Dashboards</div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-white">Core SIEM Features</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-700/50 rounded-lg p-4">
-                      <h5 className="font-medium text-cyan-300 mb-2">Real-time Analytics</h5>
-                      <ul className="text-sm text-slate-300 space-y-1">
-                        <li>• Live security event monitoring</li>
-                        <li>• Threat correlation engine</li>
-                        <li>• Behavioral analytics</li>
-                        <li>• Attack pattern detection</li>
-                      </ul>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-4">
-                      <h5 className="font-medium text-green-300 mb-2">AI-Powered Detection</h5>
-                      <ul className="text-sm text-slate-300 space-y-1">
-                        <li>• Anomaly detection algorithms</li>
-                        <li>• Machine learning models</li>
-                        <li>• Predictive threat analysis</li>
-                        <li>• Automated response rules</li>
-                      </ul>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-4">
-                      <h5 className="font-medium text-orange-300 mb-2">Compliance Reporting</h5>
-                      <ul className="text-sm text-slate-300 space-y-1">
-                        <li>• PCI DSS compliance reports</li>
-                        <li>• GDPR data protection logs</li>
-                        <li>• SOX audit trails</li>
-                        <li>• ISO 27001 evidence</li>
-                      </ul>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-4">
-                      <h5 className="font-medium text-purple-300 mb-2">Alerting & Response</h5>
-                      <ul className="text-sm text-slate-300 space-y-1">
-                        <li>• Real-time alert notifications</li>
-                        <li>• Incident response workflows</li>
-                        <li>• Automated remediation</li>
-                        <li>• Escalation procedures</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-700/30 rounded-lg p-4 border border-cyan-500/30">
-                  <p className="text-sm text-slate-300">
-                    💡 <strong>Built-in SIEM Advantage:</strong> Our integrated SIEM provides comprehensive security analytics 
-                    without requiring external integrations. All events are automatically correlated and analyzed in real-time.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <CustomerSIEMAnalytics />
         </TabsContent>
 
         <TabsContent value="siem" className="space-y-4">
