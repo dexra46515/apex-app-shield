@@ -35,7 +35,6 @@ import HoneypotManagement from './HoneypotManagement';
 import CustomerSpecificCompliance from './CustomerSpecificCompliance';
 import CustomerAdaptiveRules from './CustomerAdaptiveRules';
 import CustomerSIEMAnalytics from './CustomerSIEMAnalytics';
-import { AdvancedDifferentiatorsPanel } from './AdvancedDifferentiatorsPanel';
 
 interface AdvancedSecurityStats {
   aiAnomalies: number;
