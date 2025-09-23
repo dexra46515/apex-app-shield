@@ -24,7 +24,8 @@ import {
   Zap,
   X,
   Clock,
-  MapPin
+  MapPin,
+  Target
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,6 +35,7 @@ import HoneypotManagement from './HoneypotManagement';
 import CustomerSpecificCompliance from './CustomerSpecificCompliance';
 import CustomerAdaptiveRules from './CustomerAdaptiveRules';
 import CustomerSIEMAnalytics from './CustomerSIEMAnalytics';
+import { AdvancedDifferentiatorsPanel } from './AdvancedDifferentiatorsPanel';
 
 interface AdvancedSecurityStats {
   aiAnomalies: number;
@@ -43,6 +45,12 @@ interface AdvancedSecurityStats {
   schemaViolations: number;
   geoBlocks: number;
   siemEvents: number;
+  tlsFingerprints: number;
+  encryptedFlows: number;
+  ddosPredictions: number;
+  dynamicHoneypots: number;
+  ttpPatterns: number;
+  ruleDeployments: number;
 }
 
 const AdvancedSecurityDashboard = () => {
@@ -53,7 +61,13 @@ const AdvancedSecurityDashboard = () => {
     complianceScore: 85,
     schemaViolations: 0,
     geoBlocks: 0,
-    siemEvents: 0
+    siemEvents: 0,
+    tlsFingerprints: 0,
+    encryptedFlows: 0,
+    ddosPredictions: 0,
+    dynamicHoneypots: 0,
+    ttpPatterns: 0,
+    ruleDeployments: 0
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -124,6 +138,31 @@ const AdvancedSecurityDashboard = () => {
         .from('siem_events')
         .select('*', { count: 'exact', head: true });
 
+      // Advanced Differentiators - New tables
+      const { count: tlsCount } = await supabase
+        .from('tls_fingerprints')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: flowCount } = await supabase
+        .from('encrypted_flow_patterns')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: ddosCount } = await supabase
+        .from('ddos_predictions')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: dynamicHoneypotCount } = await supabase
+        .from('dynamic_honeypots')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: ttpCount } = await supabase
+        .from('attack_ttp_patterns')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: ruleDeploymentCount } = await supabase
+        .from('rule_deployments')
+        .select('*', { count: 'exact', head: true });
+
       setStats({
         aiAnomalies: aiCount || 0,
         honeypotInteractions: honeypotCount || 0,
@@ -131,7 +170,13 @@ const AdvancedSecurityDashboard = () => {
         complianceScore: 85,
         schemaViolations: schemaCount || 0,
         geoBlocks: geoCount || 3,
-        siemEvents: siemCount || 0
+        siemEvents: siemCount || 0,
+        tlsFingerprints: tlsCount || 0,
+        encryptedFlows: flowCount || 0,
+        ddosPredictions: ddosCount || 0,
+        dynamicHoneypots: dynamicHoneypotCount || 0,
+        ttpPatterns: ttpCount || 0,
+        ruleDeployments: ruleDeploymentCount || 0
       });
     } catch (error) {
       console.error('Error loading advanced stats:', error);
@@ -404,6 +449,46 @@ const AdvancedSecurityDashboard = () => {
     }
   };
 
+  const triggerAdvancedFeature = async (type: string) => {
+    try {
+      const functionMap: { [key: string]: string } = {
+        'tls': 'tls-fingerprint-analyzer',
+        'flow': 'encrypted-flow-analyzer',
+        'ddos': 'predictive-ddos-analyzer',
+        'honeypot': 'dynamic-honeypot-generator',
+        'ttp': 'ttp-pattern-collector'
+      };
+
+      toast({
+        title: "Analysis Started",
+        description: `Running ${type.toUpperCase()} analysis...`,
+      });
+
+      const { data, error } = await supabase.functions.invoke(functionMap[type], {
+        body: { 
+          trigger: 'manual_analysis',
+          timestamp: new Date().toISOString(),
+          source: 'dashboard'
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Analysis Complete",
+        description: `${type.toUpperCase()} analysis completed successfully`,
+      });
+
+      loadAdvancedStats();
+    } catch (error) {
+      toast({
+        title: "Analysis Failed",
+        description: `Failed to run ${type} analysis`,
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading advanced security features...</div>;
   }
@@ -467,6 +552,78 @@ const AdvancedSecurityDashboard = () => {
         </Card>
       </div>
 
+      {/* Advanced Differentiators Grid */}
+      <div className="mt-8">
+        <h3 className="text-xl font-semibold mb-4 text-white">🚀 Advanced AI Security Differentiators</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card className="border-cyan-500/30 bg-gradient-to-br from-cyan-900/20 to-cyan-800/30 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-cyan-200">TLS Fingerprinting</CardTitle>
+              <Shield className="h-4 w-4 text-cyan-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-cyan-300">{stats.tlsFingerprints}</div>
+              <p className="text-xs text-cyan-400/70">JA3 signatures captured</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-indigo-500/30 bg-gradient-to-br from-indigo-900/20 to-indigo-800/30 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-indigo-200">Encrypted Flow Analysis</CardTitle>
+              <Eye className="h-4 w-4 text-indigo-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-indigo-300">{stats.encryptedFlows}</div>
+              <p className="text-xs text-indigo-400/70">Flow patterns analyzed</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-red-500/30 bg-gradient-to-br from-red-900/20 to-red-800/30 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-red-200">Predictive DDoS</CardTitle>
+              <Zap className="h-4 w-4 text-red-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-300">{stats.ddosPredictions}</div>
+              <p className="text-xs text-red-400/70">Attack predictions made</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-yellow-500/30 bg-gradient-to-br from-yellow-900/20 to-yellow-800/30 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-yellow-200">Dynamic Honeypots</CardTitle>
+              <Target className="h-4 w-4 text-yellow-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-300">{stats.dynamicHoneypots}</div>
+              <p className="text-xs text-yellow-400/70">Auto-generated traps</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-pink-500/30 bg-gradient-to-br from-pink-900/20 to-pink-800/30 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-pink-200">TTP Intelligence</CardTitle>
+              <Brain className="h-4 w-4 text-pink-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-pink-300">{stats.ttpPatterns}</div>
+              <p className="text-xs text-pink-400/70">Attack patterns cataloged</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-violet-500/30 bg-gradient-to-br from-violet-900/20 to-violet-800/30 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-violet-200">Rule Pipeline</CardTitle>
+              <Activity className="h-4 w-4 text-violet-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-violet-300">{stats.ruleDeployments}</div>
+              <p className="text-xs text-violet-400/70">Shadow → Canary → Prod</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       <Tabs defaultValue="ai-analysis" className="space-y-4">
         <TabsList className="grid w-full grid-cols-7 bg-slate-800 border-slate-700">
           <TabsTrigger value="ai-analysis" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">AI Analysis</TabsTrigger>
@@ -510,6 +667,18 @@ const AdvancedSecurityDashboard = () => {
                   <Button onClick={viewAIReports} variant="outline" className="border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
                     <Activity className="w-4 h-4 mr-2" />
                     View Reports
+                  </Button>
+                  <Button onClick={() => triggerAdvancedFeature('tls')} variant="outline" className="border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/10">
+                    <Shield className="w-4 h-4 mr-2" />
+                    TLS Analysis
+                  </Button>
+                  <Button onClick={() => triggerAdvancedFeature('flow')} variant="outline" className="border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10">
+                    <Eye className="w-4 h-4 mr-2" />
+                    Flow Analysis
+                  </Button>
+                  <Button onClick={() => triggerAdvancedFeature('ddos')} variant="outline" className="border-red-500/50 text-red-300 hover:bg-red-500/10">
+                    <Zap className="w-4 h-4 mr-2" />
+                    DDoS Forecast
                   </Button>
                 </div>
               </div>

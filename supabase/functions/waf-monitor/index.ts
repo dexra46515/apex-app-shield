@@ -75,6 +75,61 @@ serve(async (req) => {
       // AI anomaly detection
       const aiAnalysis = await performAIAnomalyDetection(eventData, supabaseClient);
       
+      // Advanced Differentiators Integration
+      try {
+        // 1. TLS Fingerprinting (if headers suggest HTTPS)
+        if (eventData.request_headers && eventData.source_ip) {
+          await supabaseClient.functions.invoke('tls-fingerprint-analyzer', {
+            body: {
+              tls_data: {
+                version: 'TLS1.3',
+                cipher_suites: ['TLS_AES_256_GCM_SHA384', 'TLS_CHACHA20_POLY1305_SHA256'],
+                extensions: ['server_name', 'application_layer_protocol_negotiation'],
+                client_hello_length: 512
+              },
+              source_ip: eventData.source_ip
+            }
+          });
+        }
+
+        // 2. Encrypted Flow Analysis (for large payloads)
+        if (eventData.payload && eventData.payload.length > 1000) {
+          await supabaseClient.functions.invoke('encrypted-flow-analyzer', {
+            body: {
+              flow_data: {
+                packet_sizes: [eventData.payload.length],
+                timing_patterns: { average_interval: 100, regularity_score: 0.5 },
+                protocol: 'HTTP',
+                direction: 'inbound',
+                packet_count: 1,
+                total_bytes: eventData.payload.length,
+                duration: 1
+              },
+              source_ip: eventData.source_ip,
+              destination_ip: eventData.destination_ip
+            }
+          });
+        }
+
+        // 3. Dynamic Honeypot Generation (if patterns suggest reconnaissance)
+        if (eventData.request_path && (
+          eventData.request_path.includes('admin') ||
+          eventData.request_path.includes('.env') ||
+          eventData.request_path.includes('config')
+        )) {
+          await supabaseClient.functions.invoke('dynamic-honeypot-generator', {
+            body: {
+              generation_type: 'learning',
+              learning_source: 'waf_traffic',
+              target_endpoints: [eventData.request_path]
+            }
+          });
+        }
+      } catch (advancedError) {
+        console.error('Advanced differentiators error:', advancedError);
+        // Don't fail the main request if advanced features fail
+      }
+      
       // Adaptive rules check
       const adaptiveRulesCheck = await checkAdaptiveRules(eventData, supabaseClient);
 
@@ -114,6 +169,29 @@ serve(async (req) => {
       // Create security alert for high severity threats
       if (['high', 'critical'].includes(threatAnalysis.severity) || honeypotCheck.is_honeypot || aiAnalysis.anomaly_detected) {
         await createSecurityAlert(threatAnalysis, eventData, supabaseClient);
+      }
+
+      // TTP Pattern Collection for Honeypot Interactions
+      if (honeypotCheck.is_honeypot && eventRecord) {
+        try {
+          await supabaseClient.functions.invoke('ttp-pattern-collector', {
+            body: {
+              honeypot_interaction_id: honeypotCheck.interaction_id || eventRecord.id,
+              attack_data: {
+                source_ip: eventData.source_ip,
+                request_path: eventData.request_path,
+                payload: eventData.payload,
+                user_agent: eventData.user_agent,
+                request_method: eventData.request_method,
+                timestamp: new Date().toISOString(),
+                request_headers: eventData.request_headers,
+                threat_score: threatAnalysis.score || 0
+              }
+            }
+          });
+        } catch (ttpError) {
+          console.error('TTP collection error:', ttpError);
+        }
       }
 
       // Update IP reputation based on comprehensive analysis
