@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Shield, 
   AlertTriangle, 
@@ -80,6 +82,14 @@ const WAFManagement = () => {
 
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDeployment | null>(null);
   const [deploymentCode, setDeploymentCode] = useState('');
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
+  const [showManageCustomer, setShowManageCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    email: '',
+    domain: '',
+    deploymentType: 'docker'
+  });
 
   useEffect(() => {
     loadWAFData();
@@ -237,11 +247,81 @@ services:
   };
 
   const addNewCustomer = async () => {
-    // For now, just show a toast - this could open a modal
-    toast({
-      title: "Add Customer",
-      description: "Customer deployment setup would open here",
-    });
+    setShowAddCustomer(true);
+  };
+
+  const manageCustomer = (customer: CustomerDeployment) => {
+    setSelectedCustomer(customer);
+    setShowManageCustomer(true);
+  };
+
+  const createCustomer = async () => {
+    try {
+      if (!newCustomer.name || !newCustomer.domain) {
+        toast({
+          title: "Validation Error",
+          description: "Customer name and domain are required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('customer_deployments')
+        .insert({
+          customer_name: newCustomer.name,
+          customer_email: newCustomer.email,
+          domain: newCustomer.domain,
+          deployment_type: newCustomer.deploymentType
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Customer Added",
+        description: `${newCustomer.name} has been added successfully`,
+      });
+
+      setShowAddCustomer(false);
+      setNewCustomer({ name: '', email: '', domain: '', deploymentType: 'docker' });
+      loadWAFData(); // Refresh the list
+
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create customer",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateCustomerStatus = async (customerId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('customer_deployments')
+        .update({ status })
+        .eq('id', customerId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status Updated",
+        description: `Customer status changed to ${status}`,
+      });
+
+      loadWAFData(); // Refresh the data
+      setShowManageCustomer(false);
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to update customer status",
+        variant: "destructive",
+      });
+    }
   };
 
   const testInlineWAF = async () => {
@@ -432,7 +512,11 @@ services:
                           <Badge variant="outline" className="bg-slate-700 text-slate-300">
                             {customer.deployment_type}
                           </Badge>
-                          <Button size="sm" variant="outline">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => manageCustomer(customer)}
+                          >
                             <Settings className="w-4 h-4 mr-1" />
                             Manage
                           </Button>
@@ -711,6 +795,140 @@ services:
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Add Customer Modal */}
+      <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Customer</DialogTitle>
+            <DialogDescription>
+              Create a new customer deployment for WAF protection
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="customer-name">Customer Name</Label>
+              <Input
+                id="customer-name"
+                value={newCustomer.name}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Acme Corporation"
+              />
+            </div>
+            <div>
+              <Label htmlFor="customer-email">Email</Label>
+              <Input
+                id="customer-email"
+                type="email"
+                value={newCustomer.email}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="admin@acme.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="customer-domain">Domain</Label>
+              <Input
+                id="customer-domain"
+                value={newCustomer.domain}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, domain: e.target.value }))}
+                placeholder="api.acme.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="deployment-type">Deployment Type</Label>
+              <Select value={newCustomer.deploymentType} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, deploymentType: value }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="docker">Docker</SelectItem>
+                  <SelectItem value="kubernetes">Kubernetes</SelectItem>
+                  <SelectItem value="nginx">Nginx</SelectItem>
+                  <SelectItem value="envoy">Envoy</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddCustomer(false)}>Cancel</Button>
+            <Button onClick={createCustomer}>Create Customer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Customer Modal */}
+      <Dialog open={showManageCustomer} onOpenChange={setShowManageCustomer}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage Customer: {selectedCustomer?.customer_name}</DialogTitle>
+            <DialogDescription>
+              Configure customer deployment settings and status
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCustomer && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Domain</Label>
+                  <Input value={selectedCustomer.domain} readOnly />
+                </div>
+                <div>
+                  <Label>Deployment Type</Label>
+                  <Input value={selectedCustomer.deployment_type} readOnly />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Requests Today</Label>
+                  <Input value={selectedCustomer.requests_today.toLocaleString()} readOnly />
+                </div>
+                <div>
+                  <Label>Threats Blocked</Label>
+                  <Input value={selectedCustomer.threats_blocked_today.toString()} readOnly />
+                </div>
+              </div>
+              <div>
+                <Label>API Key</Label>
+                <div className="flex gap-2">
+                  <Input value={selectedCustomer.api_key} readOnly className="font-mono text-xs" />
+                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(selectedCustomer.api_key)}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <div className="flex gap-2 mt-2">
+                  <Button 
+                    size="sm" 
+                    variant={selectedCustomer.status === 'active' ? 'default' : 'outline'}
+                    onClick={() => updateCustomerStatus(selectedCustomer.id, 'active')}
+                  >
+                    Active
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={selectedCustomer.status === 'maintenance' ? 'default' : 'outline'}
+                    onClick={() => updateCustomerStatus(selectedCustomer.id, 'maintenance')}
+                  >
+                    Maintenance
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={selectedCustomer.status === 'inactive' ? 'destructive' : 'outline'}
+                    onClick={() => updateCustomerStatus(selectedCustomer.id, 'inactive')}
+                  >
+                    Inactive
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowManageCustomer(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
