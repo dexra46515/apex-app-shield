@@ -72,26 +72,50 @@ export default function CustomerIntegrationDashboard() {
   const [deploymentType, setDeploymentType] = useState("cloud");
 
   useEffect(() => {
+    initializeComponent();
+  }, []);
+
+  const initializeComponent = async () => {
+    // Set user email automatically
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email) {
+      setCustomerEmail(user.email);
+    }
+    
     loadCustomerDeployment();
     detectHardwareCapabilities();
-  }, []);
+  };
 
   const loadCustomerDeployment = async () => {
     try {
+      // Load deployment for current authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('customer_deployments')
         .select('*')
-        .limit(1)
+        .eq('customer_email', user.email)
         .maybeSingle();
       
       if (error) {
         console.error('Error loading deployment:', error);
+        setLoading(false);
         return;
       }
       
       if (data) {
         setDeployment(data);
         setIntegrationStep(data.status === 'active' ? 4 : 2);
+        // Pre-fill form with existing data
+        setCustomerName(data.customer_name);
+        setCustomerEmail(data.customer_email);
+        setDomain(data.domain);
+        setDeploymentType(data.deployment_type);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -130,14 +154,27 @@ export default function CustomerIntegrationDashboard() {
 
   const registerCustomer = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to register your deployment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('customer_deployments')
-        .insert({
+        .upsert({
           customer_name: customerName,
-          customer_email: customerEmail,
+          customer_email: user.email, // Use authenticated user's email
           domain: domain,
           deployment_type: deploymentType,
           status: 'pending'
+        }, {
+          onConflict: 'customer_email'
         })
         .select()
         .single();
@@ -421,8 +458,9 @@ export default function CustomerIntegrationDashboard() {
                       id="customerEmail"
                       type="email"
                       value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="admin@yourcompany.com"
+                      readOnly
+                      className="bg-slate-700 text-slate-300"
+                      placeholder="Loading user email..."
                     />
                   </div>
                   <div className="space-y-2">
@@ -451,9 +489,9 @@ export default function CustomerIntegrationDashboard() {
                 <Button 
                   onClick={registerCustomer} 
                   className="w-full"
-                  disabled={!customerName || !customerEmail || !domain}
+                  disabled={!customerName || !domain || !customerEmail}
                 >
-                  Register Deployment
+                  {deployment ? 'Update Deployment' : 'Register Deployment'}
                 </Button>
               </CardContent>
             </Card>
