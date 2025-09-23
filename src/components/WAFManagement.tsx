@@ -70,6 +70,15 @@ const WAFManagement = () => {
   
   const [customers, setCustomers] = useState<CustomerDeployment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [realTimeMetrics, setRealTimeMetrics] = useState({
+    cpuUsage: 0,
+    memoryUsage: 0,
+    avgResponseTime: 0,
+    requestsProcessed: 0,
+    threatsBlocked: 0,
+    falsePositives: 0,
+    blockRate: 0
+  });
 
   const [wafConfig, setWafConfig] = useState({
     globalRateLimit: 1000,
@@ -84,6 +93,7 @@ const WAFManagement = () => {
   const [deploymentCode, setDeploymentCode] = useState('');
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showManageCustomer, setShowManageCustomer] = useState(false);
+  const [securityRules, setSecurityRules] = useState<any[]>([]);
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     email: '',
@@ -91,12 +101,158 @@ const WAFManagement = () => {
     deploymentType: 'docker'
   });
 
+  const loadSecurityRules = async () => {
+    try {
+      const { data: rulesData, error } = await supabase
+        .from('security_rules')
+        .select('*')
+        .order('priority', { ascending: true });
+
+      if (error) throw error;
+
+      setSecurityRules(rulesData || []);
+      console.log('Loaded security rules:', rulesData?.length);
+    } catch (error) {
+      console.error('Error loading security rules:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load security rules",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const SecurityRulesTable = () => (
+    <div className="space-y-4">
+      {securityRules.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <FileText className="w-12 h-12 mx-auto mb-2" />
+          <p>No security rules found</p>
+          <p className="text-sm">Add your first security rule to get started</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {securityRules.map((rule) => (
+            <Card key={rule.id} className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge className={rule.enabled ? 'bg-green-600' : 'bg-gray-600'}>
+                        {rule.enabled ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                      <Badge variant="outline">{rule.severity}</Badge>
+                      <span className="font-medium text-white">{rule.name}</span>
+                    </div>
+                    <p className="text-sm text-slate-400 mb-2">{rule.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                      <span>Category: {rule.category}</span>
+                      <span>Priority: {rule.priority}</span>
+                      <span>Type: {rule.rule_type}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline">
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant={rule.enabled ? "destructive" : "default"}
+                      onClick={() => toggleRule(rule.id, !rule.enabled)}
+                    >
+                      {rule.enabled ? 'Disable' : 'Enable'}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const toggleRule = async (ruleId: string, enabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('security_rules')
+        .update({ enabled })
+        .eq('id', ruleId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Rule Updated",
+        description: `Security rule ${enabled ? 'enabled' : 'disabled'}`,
+      });
+
+      loadSecurityRules(); // Refresh the rules
+    } catch (error) {
+      console.error('Error toggling rule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update security rule",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     loadWAFData();
+    loadWAFConfiguration(); // Load real configuration
+    loadSecurityRules(); // Load security rules
     generateDeploymentCode();
     const interval = setInterval(loadWAFData, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
   }, []);
+
+  const loadWAFConfiguration = async () => {
+    try {
+      const { data: configData, error } = await supabase
+        .from('waf_configuration')
+        .select('*')
+        .eq('config_key', 'global_settings')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows found
+
+      if (configData) {
+        setWafConfig(configData.config_value as typeof wafConfig);
+        console.log('Loaded WAF configuration:', configData.config_value);
+      }
+    } catch (error) {
+      console.error('Error loading WAF configuration:', error);
+    }
+  };
+
+  const saveWAFConfiguration = async () => {
+    try {
+      const { error } = await supabase
+        .from('waf_configuration')
+        .upsert({
+          config_key: 'global_settings',
+          config_value: wafConfig,
+          description: 'Global WAF configuration settings',
+          updated_by: user?.id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Configuration Saved",
+        description: "WAF configuration has been updated successfully",
+      });
+
+      console.log('Saved WAF configuration:', wafConfig);
+    } catch (error) {
+      console.error('Error saving WAF configuration:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save WAF configuration",
+        variant: "destructive",
+      });
+    }
+  };
 
   const loadWAFData = async () => {
     try {
@@ -126,6 +282,15 @@ const WAFManagement = () => {
 
       if (securityError) throw securityError;
 
+      // Load real-time metrics
+      const { data: metricsData, error: metricsError } = await supabase
+        .from('waf_metrics')
+        .select('*')
+        .gte('timestamp', new Date(Date.now() - 60 * 60 * 1000).toISOString()) // Last hour
+        .order('timestamp', { ascending: false });
+
+      if (metricsError) throw metricsError;
+
       // Process customer data
       const processedCustomers = (customerData || []).map(customer => ({
         ...customer,
@@ -148,10 +313,29 @@ const WAFManagement = () => {
         uptime: 99.98
       });
 
+      // Process real-time metrics
+      const latestMetrics = metricsData?.reduce((acc, metric) => {
+        if (!acc[metric.metric_name] || new Date(metric.timestamp) > new Date(acc[metric.metric_name].timestamp)) {
+          acc[metric.metric_name] = metric;
+        }
+        return acc;
+      }, {} as Record<string, any>) || {};
+
+      setRealTimeMetrics({
+        cpuUsage: latestMetrics['cpu_usage_percent']?.metric_value || 0,
+        memoryUsage: latestMetrics['memory_usage_percent']?.metric_value || 0,
+        avgResponseTime: latestMetrics['average_response_time']?.metric_value || 0,
+        requestsProcessed: totalRequests,
+        threatsBlocked: blockedRequests + securityBlocked,
+        falsePositives: Math.floor((blockedRequests + securityBlocked) * 0.02), // Estimate 2% false positive rate
+        blockRate: totalRequests > 0 ? ((blockedRequests + securityBlocked) / totalRequests * 100) : 0
+      });
+
       console.log('WAF Data loaded:', {
         customers: customerData?.length,
         requests: totalRequests,
-        blocked: blockedRequests
+        blocked: blockedRequests,
+        metrics: Object.keys(latestMetrics).length
       });
 
     } catch (error) {
@@ -612,8 +796,8 @@ services:
               </div>
 
               <div className="pt-4 border-t">
-                <Button className="mr-2">Save Configuration</Button>
-                <Button variant="outline">Reset to Defaults</Button>
+                <Button onClick={saveWAFConfiguration} className="mr-2">Save Configuration</Button>
+                <Button variant="outline" onClick={loadWAFConfiguration}>Reset to Saved</Button>
               </div>
             </CardContent>
           </Card>
@@ -699,23 +883,23 @@ services:
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span>Average Response Time</span>
-                        <span>45ms</span>
+                        <span>{realTimeMetrics.avgResponseTime.toFixed(1)}ms</span>
                       </div>
-                      <Progress value={45} className="h-2" />
+                      <Progress value={Math.min(realTimeMetrics.avgResponseTime, 100)} className="h-2" />
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span>CPU Usage</span>
-                        <span>23%</span>
+                        <span>{realTimeMetrics.cpuUsage.toFixed(1)}%</span>
                       </div>
-                      <Progress value={23} className="h-2" />
+                      <Progress value={realTimeMetrics.cpuUsage} className="h-2" />
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span>Memory Usage</span>
-                        <span>67%</span>
+                        <span>{realTimeMetrics.memoryUsage.toFixed(1)}%</span>
                       </div>
-                      <Progress value={67} className="h-2" />
+                      <Progress value={realTimeMetrics.memoryUsage} className="h-2" />
                     </div>
                   </div>
                 </div>
@@ -725,19 +909,19 @@ services:
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm">Requests Processed</span>
-                      <Badge variant="outline">1,247,832</Badge>
+                      <Badge variant="outline">{realTimeMetrics.requestsProcessed.toLocaleString()}</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Threats Blocked</span>
-                      <Badge variant="destructive">8,742</Badge>
+                      <Badge variant="destructive">{realTimeMetrics.threatsBlocked.toLocaleString()}</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">False Positives</span>
-                      <Badge variant="secondary">23</Badge>
+                      <Badge variant="secondary">{realTimeMetrics.falsePositives}</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Block Rate</span>
-                      <Badge variant="outline">0.7%</Badge>
+                      <Badge variant="outline">{realTimeMetrics.blockRate.toFixed(1)}%</Badge>
                     </div>
                   </div>
                 </div>
@@ -759,16 +943,25 @@ services:
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Button>
-                  <Shield className="w-4 h-4 mr-2" />
-                  Add New Rule
-                </Button>
-                
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="w-12 h-12 mx-auto mb-2" />
-                  <p>Security rules management interface</p>
-                  <p className="text-sm">Configure OWASP rules, custom patterns, and geo-blocking</p>
+                <div className="flex justify-between items-center">
+                  <Button onClick={loadSecurityRules}>
+                    <Shield className="w-4 h-4 mr-2" />
+                    Refresh Rules
+                  </Button>
+                  <Button variant="outline">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Add New Rule
+                  </Button>
                 </div>
+                
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading security rules...</p>
+                  </div>
+                ) : (
+                  <SecurityRulesTable />
+                )}
               </div>
             </CardContent>
           </Card>
