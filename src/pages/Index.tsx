@@ -6,6 +6,7 @@ import WAFManagement from '@/components/WAFManagement';
 import CustomerOnboarding from '@/components/CustomerOnboarding';
 import EnhancedCustomerOnboarding from '@/components/EnhancedCustomerOnboarding';
 import HardwareTrustDashboard from '@/components/HardwareTrustDashboard';
+import ManagementCompliance from '@/components/ManagementCompliance';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Index = () => {
@@ -34,11 +35,12 @@ const Index = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
               Enterprise WAF Security Platform
             </h1>
-            <TabsList className="grid grid-cols-5 w-[1000px] bg-slate-800 border-slate-700">
+            <TabsList className="grid grid-cols-6 w-[1200px] bg-slate-800 border-slate-700">
               <TabsTrigger value="standard" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Dashboard</TabsTrigger>
               <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced</TabsTrigger>
               <TabsTrigger value="hardware" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Hardware Trust</TabsTrigger>
               <TabsTrigger value="waf-management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">WAF Mgmt</TabsTrigger>
+              <TabsTrigger value="management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Management</TabsTrigger>
               <TabsTrigger value="onboarding" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Onboarding</TabsTrigger>
             </TabsList>
           </div>
@@ -57,6 +59,10 @@ const Index = () => {
 
           <TabsContent value="waf-management">
             <WAFManagement />
+          </TabsContent>
+
+          <TabsContent value="management">
+            <ManagementCompliance />
           </TabsContent>
 
           <TabsContent value="onboarding">
