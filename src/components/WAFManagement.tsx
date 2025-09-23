@@ -663,7 +663,7 @@ services:
       <Tabs defaultValue="deployments" className="space-y-4">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="deployments">Customer Deployments</TabsTrigger>
-          <TabsTrigger value="configuration">WAF Configuration</TabsTrigger>
+          <TabsTrigger value="configuration">Settings</TabsTrigger>
           <TabsTrigger value="deployment-package">Deployment Package</TabsTrigger>
           <TabsTrigger value="monitoring">Live Monitoring</TabsTrigger>
           <TabsTrigger value="rules">Security Rules</TabsTrigger>
