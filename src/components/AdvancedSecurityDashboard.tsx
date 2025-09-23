@@ -179,10 +179,10 @@ const AdvancedSecurityDashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
           Advanced WAF Security Center
         </h2>
-        <Button onClick={runAIAnalysis} className="bg-gradient-to-r from-purple-500 to-blue-600">
+        <Button onClick={runAIAnalysis} className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg">
           <Brain className="w-4 h-4 mr-2" />
           Run AI Analysis
         </Button>
@@ -190,69 +190,69 @@ const AdvancedSecurityDashboard = () => {
 
       {/* Advanced Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50">
+        <Card className="border-purple-500/30 bg-gradient-to-br from-purple-900/20 to-purple-800/30 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">AI Anomalies Detected</CardTitle>
-            <Brain className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-sm font-medium text-purple-200">AI Anomalies Detected</CardTitle>
+            <Brain className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-700">{stats.aiAnomalies}</div>
-            <p className="text-xs text-muted-foreground">Machine learning analysis</p>
+            <div className="text-2xl font-bold text-purple-300">{stats.aiAnomalies}</div>
+            <p className="text-xs text-purple-400/70">Machine learning analysis</p>
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100/50">
+        <Card className="border-orange-500/30 bg-gradient-to-br from-orange-900/20 to-orange-800/30 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Honeypot Interactions</CardTitle>
-            <Eye className="h-4 w-4 text-orange-600" />
+            <CardTitle className="text-sm font-medium text-orange-200">Honeypot Interactions</CardTitle>
+            <Eye className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-700">{stats.honeypotInteractions}</div>
-            <p className="text-xs text-muted-foreground">Deception mesh active</p>
+            <div className="text-2xl font-bold text-orange-300">{stats.honeypotInteractions}</div>
+            <p className="text-xs text-orange-400/70">Deception mesh active</p>
           </CardContent>
         </Card>
 
-        <Card className="border-green-200 bg-gradient-to-br from-green-50 to-green-100/50">
+        <Card className="border-green-500/30 bg-gradient-to-br from-green-900/20 to-green-800/30 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Adaptive Rules</CardTitle>
-            <Zap className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium text-green-200">Adaptive Rules</CardTitle>
+            <Zap className="h-4 w-4 text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-700">{stats.adaptiveRules}</div>
-            <p className="text-xs text-muted-foreground">Self-learning security</p>
+            <div className="text-2xl font-bold text-green-300">{stats.adaptiveRules}</div>
+            <p className="text-xs text-green-400/70">Self-learning security</p>
           </CardContent>
         </Card>
 
-        <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50">
+        <Card className="border-blue-500/30 bg-gradient-to-br from-blue-900/20 to-blue-800/30 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Compliance Score</CardTitle>
-            <Shield className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium text-blue-200">Compliance Score</CardTitle>
+            <Shield className="h-4 w-4 text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-700">{stats.complianceScore}%</div>
-            <p className="text-xs text-muted-foreground">Multi-standard compliance</p>
+            <div className="text-2xl font-bold text-blue-300">{stats.complianceScore}%</div>
+            <p className="text-xs text-blue-400/70">Multi-standard compliance</p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="ai-analysis" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="ai-analysis">AI Analysis</TabsTrigger>
-          <TabsTrigger value="honeypots">Honeypots</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
-          <TabsTrigger value="adaptive">Adaptive Rules</TabsTrigger>
-          <TabsTrigger value="geo-blocking">Geo Blocking</TabsTrigger>
-          <TabsTrigger value="siem">SIEM Integration</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6 bg-slate-800 border-slate-700">
+          <TabsTrigger value="ai-analysis" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">AI Analysis</TabsTrigger>
+          <TabsTrigger value="honeypots" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">Honeypots</TabsTrigger>
+          <TabsTrigger value="compliance" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">Compliance</TabsTrigger>
+          <TabsTrigger value="adaptive" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">Adaptive Rules</TabsTrigger>
+          <TabsTrigger value="geo-blocking" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">Geo Blocking</TabsTrigger>
+          <TabsTrigger value="siem" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">SIEM Integration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ai-analysis" className="space-y-4">
-          <Card>
+          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="w-5 h-5 text-purple-600" />
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Brain className="w-5 h-5 text-purple-400" />
                 AI-Powered Anomaly Detection
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 Advanced behavioral analysis using Perplexity AI to detect sophisticated threats
               </CardDescription>
             </CardHeader>
@@ -260,20 +260,20 @@ const AdvancedSecurityDashboard = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Detection Sensitivity</label>
-                    <Progress value={75} className="w-full" />
+                    <label className="text-sm font-medium text-slate-300">Detection Sensitivity</label>
+                    <Progress value={75} className="w-full bg-slate-700 [&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-blue-500" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Learning Confidence</label>
-                    <Progress value={85} className="w-full" />
+                    <label className="text-sm font-medium text-slate-300">Learning Confidence</label>
+                    <Progress value={85} className="w-full bg-slate-700 [&>div]:bg-gradient-to-r [&>div]:from-green-500 [&>div]:to-emerald-500" />
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={runAIAnalysis} variant="outline">
+                  <Button onClick={runAIAnalysis} variant="outline" className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
                     <Brain className="w-4 h-4 mr-2" />
                     Run Analysis
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
                     <Activity className="w-4 h-4 mr-2" />
                     View Reports
                   </Button>
@@ -284,13 +284,13 @@ const AdvancedSecurityDashboard = () => {
         </TabsContent>
 
         <TabsContent value="honeypots" className="space-y-4">
-          <Card>
+          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="w-5 h-5 text-orange-600" />
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Eye className="w-5 h-5 text-orange-400" />
                 Deception Mesh Network
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 Active honeypots to detect and analyze attacker behavior
               </CardDescription>
             </CardHeader>
@@ -302,14 +302,14 @@ const AdvancedSecurityDashboard = () => {
                     { name: 'API Keys', path: '/api/keys', type: 'api', status: 'active' },
                     { name: 'DB Backup', path: '/backups/db.sql', type: 'file', status: 'active' },
                   ].map((honeypot, index) => (
-                    <Card key={index} className="border-orange-200">
+                    <Card key={index} className="bg-slate-700/50 border-orange-500/30 backdrop-blur-sm">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="font-medium">{honeypot.name}</div>
-                            <div className="text-sm text-muted-foreground">{honeypot.path}</div>
+                            <div className="font-medium text-orange-200">{honeypot.name}</div>
+                            <div className="text-sm text-orange-400/70">{honeypot.path}</div>
                           </div>
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <Badge variant="outline" className="bg-green-900/30 text-green-400 border-green-500/30">
                             {honeypot.status}
                           </Badge>
                         </div>
@@ -317,7 +317,7 @@ const AdvancedSecurityDashboard = () => {
                     </Card>
                   ))}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-400">
                   Total interactions: {stats.honeypotInteractions} | Last 24h: 0
                 </div>
               </div>
@@ -326,13 +326,13 @@ const AdvancedSecurityDashboard = () => {
         </TabsContent>
 
         <TabsContent value="compliance" className="space-y-4">
-          <Card>
+          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
+              <CardTitle className="flex items-center gap-2 text-white">
+                <FileText className="w-5 h-5 text-blue-400" />
                 Compliance Reporting
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 Automated compliance reports for major security standards
               </CardDescription>
             </CardHeader>
@@ -345,23 +345,23 @@ const AdvancedSecurityDashboard = () => {
                   { name: 'SOX', score: 85, status: 'attention' },
                   { name: 'ISO 27001', score: 87, status: 'compliant' },
                 ].map((standard, index) => (
-                  <Card key={index} className="border-blue-200">
+                  <Card key={index} className="bg-slate-700/50 border-blue-500/30 backdrop-blur-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="font-medium">{standard.name}</div>
+                        <div className="font-medium text-blue-200">{standard.name}</div>
                         <Badge 
                           variant="outline" 
-                          className={standard.status === 'compliant' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}
+                          className={standard.status === 'compliant' ? 'bg-green-900/30 text-green-400 border-green-500/30' : 'bg-yellow-900/30 text-yellow-400 border-yellow-500/30'}
                         >
                           {standard.score}%
                         </Badge>
                       </div>
-                      <Progress value={standard.score} className="w-full mb-2" />
+                      <Progress value={standard.score} className="w-full mb-2 bg-slate-600 [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-cyan-500" />
                       <Button 
                         size="sm" 
                         variant="outline" 
                         onClick={() => generateComplianceReport(standard.name.toLowerCase().replace(/\s+/g, '_'))}
-                        className="w-full"
+                        className="w-full bg-slate-600 border-slate-500 text-slate-200 hover:bg-slate-500"
                       >
                         Generate Report
                       </Button>
@@ -374,13 +374,13 @@ const AdvancedSecurityDashboard = () => {
         </TabsContent>
 
         <TabsContent value="adaptive" className="space-y-4">
-          <Card>
+          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-green-600" />
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Zap className="w-5 h-5 text-green-400" />
                 Adaptive Security Rules
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 Machine learning-generated security rules that evolve with threats
               </CardDescription>
             </CardHeader>
@@ -388,19 +388,19 @@ const AdvancedSecurityDashboard = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-green-700">{stats.adaptiveRules}</div>
-                    <div className="text-sm text-muted-foreground">Active Rules</div>
+                    <div className="text-2xl font-bold text-green-400">{stats.adaptiveRules}</div>
+                    <div className="text-sm text-slate-400">Active Rules</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-blue-700">95%</div>
-                    <div className="text-sm text-muted-foreground">Confidence</div>
+                    <div className="text-2xl font-bold text-blue-400">95%</div>
+                    <div className="text-sm text-slate-400">Confidence</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-purple-700">24h</div>
-                    <div className="text-sm text-muted-foreground">Auto-Generated</div>
+                    <div className="text-2xl font-bold text-purple-400">24h</div>
+                    <div className="text-sm text-slate-400">Auto-Generated</div>
                   </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-400">
                   Adaptive rules automatically adjust based on attack patterns and threat intelligence.
                 </div>
               </div>
@@ -409,13 +409,13 @@ const AdvancedSecurityDashboard = () => {
         </TabsContent>
 
         <TabsContent value="geo-blocking" className="space-y-4">
-          <Card>
+          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-red-600" />
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Globe className="w-5 h-5 text-red-400" />
                 Geographic & ASN Blocking
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 Country and network-based access controls
               </CardDescription>
             </CardHeader>
@@ -427,26 +427,26 @@ const AdvancedSecurityDashboard = () => {
                     { country: 'RU', name: 'Russia', status: 'monitor', reason: 'High volume attacks' },
                     { country: 'KP', name: 'North Korea', status: 'block', reason: 'Sanctions policy' },
                   ].map((restriction, index) => (
-                    <Card key={index} className="border-red-200">
+                    <Card key={index} className="bg-slate-700/50 border-red-500/30 backdrop-blur-sm">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div>
-                            <div className="font-medium">{restriction.name}</div>
-                            <div className="text-sm text-muted-foreground">{restriction.country}</div>
+                            <div className="font-medium text-red-200">{restriction.name}</div>
+                            <div className="text-sm text-red-400/70">{restriction.country}</div>
                           </div>
                           <Badge 
                             variant="outline" 
-                            className={restriction.status === 'block' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}
+                            className={restriction.status === 'block' ? 'bg-red-900/30 text-red-400 border-red-500/30' : 'bg-yellow-900/30 text-yellow-400 border-yellow-500/30'}
                           >
                             {restriction.status}
                           </Badge>
                         </div>
-                        <div className="text-xs text-muted-foreground">{restriction.reason}</div>
+                        <div className="text-xs text-slate-400">{restriction.reason}</div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-400">
                   Total restrictions: {stats.geoBlocks} | Blocked requests: 0 (last 24h)
                 </div>
               </div>
@@ -455,13 +455,13 @@ const AdvancedSecurityDashboard = () => {
         </TabsContent>
 
         <TabsContent value="siem" className="space-y-4">
-          <Card>
+          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-indigo-600" />
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Database className="w-5 h-5 text-indigo-400" />
                 SIEM Integration
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 Enterprise security information and event management integration
               </CardDescription>
             </CardHeader>
@@ -474,12 +474,12 @@ const AdvancedSecurityDashboard = () => {
                     { name: 'QRadar', status: 'available', color: 'green' },
                     { name: 'Sentinel', status: 'available', color: 'green' },
                   ].map((siem, index) => (
-                    <Card key={index} className="border-indigo-200">
+                    <Card key={index} className="bg-slate-700/50 border-indigo-500/30 backdrop-blur-sm">
                       <CardContent className="p-4 text-center">
-                        <div className="font-medium">{siem.name}</div>
+                        <div className="font-medium text-indigo-200">{siem.name}</div>
                         <Badge 
                           variant="outline" 
-                          className="bg-green-50 text-green-700 border-green-200 mt-1"
+                          className="bg-green-900/30 text-green-400 border-green-500/30 mt-1"
                         >
                           {siem.status}
                         </Badge>
@@ -487,7 +487,7 @@ const AdvancedSecurityDashboard = () => {
                     </Card>
                   ))}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-400">
                   Events exported: {stats.siemEvents} | Integration ready for all major SIEM platforms
                 </div>
               </div>
