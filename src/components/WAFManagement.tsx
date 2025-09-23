@@ -26,7 +26,9 @@ import {
   Eye,
   Database,
   FileText,
-  BarChart3
+  BarChart3,
+  UserCheck,
+  Clock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -347,8 +349,39 @@ const WAFManagement = () => {
     loadWAFConfiguration(); // Load real configuration
     loadSecurityRules(); // Load security rules
     generateDeploymentCode();
+    
+    // Set up real-time subscription for new customer registrations
+    const customerSubscription = supabase
+      .channel('customer-registrations')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'customer_deployments'
+        },
+        (payload) => {
+          console.log('Customer deployment changed:', payload);
+          // Reload customers when changes occur
+          loadWAFData();
+          
+          // Show toast notification for new registrations
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: "New Customer Registration",
+              description: `${payload.new.customer_name} just registered via Customer Integration Portal`,
+            });
+          }
+        }
+      )
+      .subscribe();
+    
     const interval = setInterval(loadWAFData, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(customerSubscription);
+    };
   }, []);
 
   const loadWAFConfiguration = async () => {
@@ -446,6 +479,7 @@ const WAFManagement = () => {
 
       // Calculate statistics
       const activeCustomers = customerData?.filter(c => c.status === 'active').length || 0;
+      const selfRegisteredCustomers = customerData?.filter(c => c.customer_email).length || 0;
       const totalRequests = requestsData?.length || 0;
       const blockedRequests = requestsData?.filter(r => r.action === 'block').length || 0;
       const securityBlocked = securityEvents?.filter(e => e.blocked).length || 0;
@@ -770,12 +804,29 @@ services:
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/20 border-blue-500/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
             <Users className="h-4 w-4 text-blue-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-300">{stats.totalCustomers}</div>
-            <p className="text-xs text-blue-400/70">+2 this month</p>
+            <p className="text-xs text-blue-400/70">
+              {customers.filter(c => c.customer_email).length} via Customer Portal
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/20 border-purple-500/30">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Self-Registrations</CardTitle>
+            <UserCheck className="h-4 w-4 text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-300">
+              {customers.filter(c => c.customer_email).length}
+            </div>
+            <p className="text-xs text-purple-400/70">
+              {customers.filter(c => c.customer_email && c.status === 'active').length} active integrations
+            </p>
           </CardContent>
         </Card>
 
@@ -876,13 +927,24 @@ services:
                   <Card key={customer.id} className="bg-slate-800/50 border-slate-700">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className={`w-3 h-3 rounded-full ${getStatusColor(customer.status)}`}></div>
-                          <div>
-                            <h4 className="font-medium text-white">{customer.customer_name}</h4>
-                            <p className="text-sm text-slate-400">{customer.domain}</p>
-                          </div>
-                        </div>
+                         <div className="flex items-center space-x-4">
+                           <div className={`w-3 h-3 rounded-full ${getStatusColor(customer.status)}`}></div>
+                           <div>
+                             <div className="flex items-center space-x-2">
+                               <h4 className="font-medium text-white">{customer.customer_name}</h4>
+                               {customer.customer_email && (
+                                 <Badge variant="outline" className="bg-blue-900/30 border-blue-500 text-blue-300 text-xs">
+                                   <UserCheck className="w-3 h-3 mr-1" />
+                                   Self-Registered
+                                 </Badge>
+                               )}
+                             </div>
+                             <p className="text-sm text-slate-400">{customer.domain}</p>
+                             {customer.customer_email && (
+                               <p className="text-xs text-slate-500">{customer.customer_email}</p>
+                             )}
+                           </div>
+                         </div>
                         <div className="flex items-center space-x-4 text-sm text-slate-300">
                   <div className="text-center">
                             <div className="font-medium">{customer.requests_today.toLocaleString()}</div>
@@ -910,6 +972,74 @@ services:
                   ))}
                 </div>
               )}
+              
+              {/* Recent Customer Activity Section */}
+              <Card className="bg-slate-800/50 border-slate-700 mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-white">
+                    <Clock className="w-5 h-5 mr-2 text-blue-400" />
+                    Recent Customer Activity
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Customer registrations from the Customer Integration Portal
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {customers.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400">
+                      <UserCheck className="w-12 h-12 mx-auto mb-3 text-slate-500" />
+                      <p>No customer registrations yet</p>
+                      <p className="text-sm mt-1">When customers register through the Customer Integration Portal, they'll appear here automatically.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {customers
+                        .filter(customer => customer.customer_email) // Only show self-registered customers
+                        .slice(0, 5) // Show last 5
+                        .map((customer) => (
+                          <div key={customer.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-600">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-white font-medium">{customer.customer_name}</span>
+                                  <Badge variant="outline" className="bg-green-900/30 border-green-500 text-green-300 text-xs">
+                                    Self-Registered
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-slate-400">{customer.domain} • {customer.customer_email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge 
+                                variant="outline" 
+                                className={`${customer.status === 'active' ? 'bg-green-900/30 border-green-500 text-green-300' : 'bg-yellow-900/30 border-yellow-500 text-yellow-300'}`}
+                              >
+                                {customer.status}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => manageCustomer(customer)}
+                                className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                              >
+                                <Settings className="w-3 h-3 mr-1" />
+                                Manage
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      
+                      {customers.filter(customer => customer.customer_email).length === 0 && (
+                        <div className="text-center py-4 text-slate-400">
+                          <p>All customers were created manually by admin</p>
+                          <p className="text-sm mt-1">Customer self-registrations will appear here with real-time updates.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         </TabsContent>
