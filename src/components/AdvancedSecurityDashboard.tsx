@@ -148,6 +148,40 @@ const AdvancedSecurityDashboard = () => {
     }
   };
 
+  const viewAIReports = async () => {
+    try {
+      toast({
+        title: "Loading AI Reports",
+        description: "Fetching AI anomaly detection reports...",
+      });
+
+      // Load real AI anomaly detection reports
+      const { data, error } = await supabase
+        .from('ai_anomaly_detections')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      toast({
+        title: "AI Reports Loaded",
+        description: `Found ${data?.length || 0} AI anomaly detection reports`,
+      });
+
+      // You could navigate to a reports page or show in a modal
+      console.log('AI Reports:', data);
+      
+    } catch (error) {
+      console.error('Error loading AI reports:', error);
+      toast({
+        title: "Error Loading Reports",
+        description: "Failed to load AI anomaly detection reports",
+        variant: "destructive",
+      });
+    }
+  };
+
   const generateComplianceReport = async (reportType: string) => {
     console.log('Compliance Report button clicked for:', reportType);
     try {
@@ -292,7 +326,7 @@ const AdvancedSecurityDashboard = () => {
                     <Brain className="w-4 h-4 mr-2" />
                     Run Analysis
                   </Button>
-                  <Button variant="outline" className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                  <Button onClick={viewAIReports} variant="outline" className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
                     <Activity className="w-4 h-4 mr-2" />
                     View Reports
                   </Button>

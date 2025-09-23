@@ -653,6 +653,17 @@ services:
     }
   };
 
+  const openLiveMonitor = () => {
+    // Open real-time monitoring view
+    toast({
+      title: "Live Monitor",
+      description: "Opening real-time security event monitoring...",
+    });
+    
+    // You could navigate to a live monitoring page or open a modal
+    window.open('/live-monitor', '_blank');
+  };
+
   const testInlineWAF = async () => {
     try {
       setLoading(true);
@@ -769,7 +780,7 @@ services:
             <Zap className="w-4 h-4 mr-2" />
             Test WAF
           </Button>
-          <Button variant="outline">
+          <Button onClick={openLiveMonitor} variant="outline">
             <Eye className="w-4 h-4 mr-2" />
             Live Monitor
           </Button>

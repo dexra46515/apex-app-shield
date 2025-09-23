@@ -25,6 +25,7 @@ import {
   User
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SettingsModalProps {
   open: boolean;
@@ -57,13 +58,32 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
     logRetentionDays: 90,
   });
 
-  const handleSave = () => {
-    // Here you would save settings to the database
-    toast({
-      title: "Settings Saved",
-      description: "Your WAF security settings have been updated successfully.",
-    });
-    onOpenChange(false);
+  const handleSave = async () => {
+    try {
+      // Save settings to Supabase WAF configuration table
+      const { error } = await supabase
+        .from('waf_configuration')
+        .upsert({
+          config_key: 'security_settings',
+          config_value: settings as any,
+          description: 'WAF security preferences and monitoring settings'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Settings Saved",
+        description: "Your WAF security settings have been updated successfully.",
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save settings to database",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleReset = () => {
