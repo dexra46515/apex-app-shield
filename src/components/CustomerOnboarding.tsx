@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Users, 
   Building, 
@@ -17,7 +18,17 @@ import {
   Download,
   ExternalLink,
   Settings,
-  Shield
+  Shield,
+  AlertCircle,
+  Globe,
+  Clock,
+  Zap,
+  BookOpen,
+  Phone,
+  Check,
+  X,
+  RefreshCw,
+  Play
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +38,9 @@ interface CustomerData {
   email: string;
   domain: string;
   deploymentType: 'docker' | 'kubernetes' | 'nginx' | 'apache';
+  contactPhone?: string;
+  industry?: string;
+  expectedTraffic?: string;
 }
 
 interface OnboardingStep {
@@ -34,6 +48,20 @@ interface OnboardingStep {
   title: string;
   description: string;
   completed: boolean;
+  inProgress: boolean;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+interface DeploymentStatus {
+  configured: boolean;
+  deployed: boolean;
+  tested: boolean;
+  lastCheck: string;
 }
 
 const CustomerOnboarding = () => {
@@ -43,31 +71,104 @@ const CustomerOnboarding = () => {
     name: '',
     email: '',
     domain: '',
-    deploymentType: 'docker'
+    deploymentType: 'docker',
+    contactPhone: '',
+    industry: '',
+    expectedTraffic: ''
   });
   const [apiKey, setApiKey] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult>({
+    isValid: false,
+    errors: [],
+    warnings: []
+  });
+  const [deploymentStatus, setDeploymentStatus] = useState<DeploymentStatus>({
+    configured: false,
+    deployed: false,
+    tested: false,
+    lastCheck: ''
+  });
 
   const [steps, setSteps] = useState<OnboardingStep[]>([
-    { id: 1, title: 'Customer Information', description: 'Basic company details', completed: false },
-    { id: 2, title: 'API Key Generation', description: 'Generate secure API credentials', completed: false },
-    { id: 3, title: 'Deployment Configuration', description: 'Configure WAF deployment', completed: false },
-    { id: 4, title: 'Testing & Verification', description: 'Test WAF integration', completed: false }
+    { id: 1, title: 'Customer Details', description: 'Company & contact information', completed: false, inProgress: false },
+    { id: 2, title: 'Security Configuration', description: 'Generate API keys & rules', completed: false, inProgress: false },
+    { id: 3, title: 'Deployment Setup', description: 'Configure & deploy WAF', completed: false, inProgress: false },
+    { id: 4, title: 'Live Testing', description: 'Verify & activate protection', completed: false, inProgress: false },
+    { id: 5, title: 'Go Live', description: 'Final activation & monitoring', completed: false, inProgress: false }
   ]);
 
+  // Real-time validation as user types
+  useEffect(() => {
+    validateCustomerData();
+  }, [customerData]);
+
+  const validateCustomerData = () => {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Required field validation
+    if (!customerData.name.trim()) errors.push('Company name is required');
+    if (!customerData.email.trim()) errors.push('Email is required');
+    if (!customerData.domain.trim()) errors.push('Domain is required');
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (customerData.email && !emailRegex.test(customerData.email)) {
+      errors.push('Please enter a valid email address');
+    }
+
+    // Domain validation
+    const domainRegex = /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/;
+    if (customerData.domain && !domainRegex.test(customerData.domain)) {
+      errors.push('Please enter a valid domain (e.g., api.company.com)');
+    }
+
+    // Business logic warnings
+    if (customerData.domain && customerData.domain.includes('localhost')) {
+      warnings.push('Localhost domains cannot be protected in production');
+    }
+    
+    if (customerData.expectedTraffic === 'high' && customerData.deploymentType === 'docker') {
+      warnings.push('Consider Kubernetes for high traffic volumes');
+    }
+
+    setValidationResult({
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    });
+  };
+
   const createCustomer = async () => {
-    if (!customerData.name || !customerData.email || !customerData.domain) {
+    if (!validationResult.isValid) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please fix all validation errors before proceeding",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
+    setSteps(prev => prev.map(step => 
+      step.id === 1 ? { ...step, inProgress: true } : step
+    ));
+
     try {
+      // Check if domain is already registered
+      const { data: existingCustomer } = await supabase
+        .from('customer_deployments')
+        .select('id, customer_name')
+        .eq('domain', customerData.domain)
+        .single();
+
+      if (existingCustomer) {
+        throw new Error(`Domain ${customerData.domain} is already registered to ${existingCustomer.customer_name}`);
+      }
+
+      // Create customer record
       const { data, error } = await supabase
         .from('customer_deployments')
         .insert({
@@ -75,7 +176,13 @@ const CustomerOnboarding = () => {
           customer_email: customerData.email,
           domain: customerData.domain,
           deployment_type: customerData.deploymentType,
-          status: 'active'
+          status: 'active',
+          config_settings: {
+            industry: customerData.industry,
+            expected_traffic: customerData.expectedTraffic,
+            contact_phone: customerData.contactPhone,
+            onboarded_at: new Date().toISOString()
+          }
         })
         .select()
         .single();
@@ -87,22 +194,26 @@ const CustomerOnboarding = () => {
       
       // Mark step 1 as completed
       setSteps(prev => prev.map(step => 
-        step.id === 1 ? { ...step, completed: true } : step
+        step.id === 1 ? { ...step, completed: true, inProgress: false } : step
       ));
       setCurrentStep(2);
 
       toast({
-        title: "Customer Created",
-        description: `Successfully onboarded ${customerData.name}`,
+        title: "Customer Created Successfully",
+        description: `${customerData.name} has been onboarded with secure credentials`,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating customer:', error);
       toast({
-        title: "Error",
-        description: "Failed to create customer deployment",
+        title: "Onboarding Failed",
+        description: error.message || "Failed to create customer deployment",
         variant: "destructive"
       });
+      
+      setSteps(prev => prev.map(step => 
+        step.id === 1 ? { ...step, inProgress: false } : step
+      ));
     } finally {
       setLoading(false);
     }

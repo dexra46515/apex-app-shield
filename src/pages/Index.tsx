@@ -4,6 +4,7 @@ import SecurityDashboard from '@/components/SecurityDashboard';
 import AdvancedSecurityDashboard from '@/components/AdvancedSecurityDashboard';
 import WAFManagement from '@/components/WAFManagement';
 import CustomerOnboarding from '@/components/CustomerOnboarding';
+import EnhancedCustomerOnboarding from '@/components/EnhancedCustomerOnboarding';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Index = () => {
@@ -53,7 +54,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="onboarding">
-            <CustomerOnboarding />
+            <EnhancedCustomerOnboarding />
           </TabsContent>
         </Tabs>
       </div>
