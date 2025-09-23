@@ -37,6 +37,7 @@ const ComplianceReports = ({ refreshToken = 0 }: { refreshToken?: number }) => {
   const [reports, setReports] = useState<ComplianceReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<ComplianceReport | null>(null);
+  const [activeTab, setActiveTab] = useState('list');
 
   useEffect(() => {
     loadReports();
@@ -158,7 +159,7 @@ const ComplianceReports = ({ refreshToken = 0 }: { refreshToken?: number }) => {
         </Badge>
       </div>
 
-      <Tabs defaultValue="list" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-2 bg-slate-700 border-slate-600">
           <TabsTrigger value="list" className="data-[state=active]:bg-slate-600 text-slate-300 data-[state=active]:text-white">
             Reports List
@@ -231,7 +232,7 @@ const ComplianceReports = ({ refreshToken = 0 }: { refreshToken?: number }) => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setSelectedReport(report)}
+                        onClick={() => { setSelectedReport(report); setActiveTab('details'); }}
                         className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
                       >
                         <Eye className="h-4 w-4 mr-2" />
