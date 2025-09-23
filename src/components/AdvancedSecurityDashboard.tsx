@@ -103,7 +103,13 @@ const AdvancedSecurityDashboard = () => {
   };
 
   const runAIAnalysis = async () => {
+    console.log('AI Analysis button clicked!');
     try {
+      toast({
+        title: "Starting AI Analysis",
+        description: "Running anomaly detection...",
+      });
+
       const response = await supabase.functions.invoke('ai-anomaly-detector', {
         body: {
           session_data: {
@@ -120,6 +126,8 @@ const AdvancedSecurityDashboard = () => {
         }
       });
 
+      console.log('AI Analysis response:', response);
+
       if (response.error) throw response.error;
 
       toast({
@@ -132,14 +140,20 @@ const AdvancedSecurityDashboard = () => {
       console.error('Error running AI analysis:', error);
       toast({
         title: "AI Analysis Failed",
-        description: "Unable to perform AI anomaly detection",
+        description: error.message || "Unable to perform AI anomaly detection",
         variant: "destructive",
       });
     }
   };
 
   const generateComplianceReport = async (reportType: string) => {
+    console.log('Compliance Report button clicked for:', reportType);
     try {
+      toast({
+        title: "Generating Report",
+        description: `Creating ${reportType.toUpperCase()} compliance report...`,
+      });
+
       const endDate = new Date().toISOString();
       const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -152,6 +166,8 @@ const AdvancedSecurityDashboard = () => {
         }
       });
 
+      console.log('Compliance report response:', response);
+
       if (response.error) throw response.error;
 
       toast({
@@ -162,7 +178,7 @@ const AdvancedSecurityDashboard = () => {
       console.error('Error generating compliance report:', error);
       toast({
         title: "Report Generation Failed",
-        description: "Unable to generate compliance report",
+        description: error.message || "Unable to generate compliance report",
         variant: "destructive",
       });
     }

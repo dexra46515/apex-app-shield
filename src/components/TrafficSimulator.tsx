@@ -34,6 +34,7 @@ const TrafficSimulator = () => {
   });
 
   const startSimulation = async () => {
+    console.log('Traffic Simulator button clicked!');
     if (stats.processing) return;
 
     setStats(prev => ({ ...prev, processing: true, progress: 0 }));
@@ -52,6 +53,7 @@ const TrafficSimulator = () => {
       });
 
       if (error) {
+        console.error('Simulation error details:', error);
         throw error;
       }
 
