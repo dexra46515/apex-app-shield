@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Shield, 
   AlertTriangle, 
@@ -17,7 +18,10 @@ import {
   FileText,
   Database,
   Network,
-  Zap
+  Zap,
+  X,
+  Clock,
+  MapPin
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,6 +52,8 @@ const AdvancedSecurityDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [reportsRefresh, setReportsRefresh] = useState(0);
+  const [showAIReports, setShowAIReports] = useState(false);
+  const [aiReports, setAiReports] = useState<any[]>([]);
 
   const loadAdvancedStats = async () => {
     try {
@@ -160,17 +166,17 @@ const AdvancedSecurityDashboard = () => {
         .from('ai_anomaly_detections')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (error) throw error;
+
+      setAiReports(data || []);
+      setShowAIReports(true);
 
       toast({
         title: "AI Reports Loaded",
         description: `Found ${data?.length || 0} AI anomaly detection reports`,
       });
-
-      // You could navigate to a reports page or show in a modal
-      console.log('AI Reports:', data);
       
     } catch (error) {
       console.error('Error loading AI reports:', error);
@@ -550,6 +556,106 @@ const AdvancedSecurityDashboard = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* AI Reports Modal */}
+      <Dialog open={showAIReports} onOpenChange={setShowAIReports}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Brain className="h-5 w-5 text-purple-400" />
+              AI Anomaly Detection Reports
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Detailed AI-powered security anomaly analysis results
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {aiReports.length === 0 ? (
+              <div className="text-center py-12">
+                <Brain className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-300 text-lg mb-2">No AI reports found</p>
+                <p className="text-slate-400">Run AI analysis to generate anomaly detection reports</p>
+              </div>
+            ) : (
+              aiReports.map((report, index) => (
+                <Card key={report.id || index} className="bg-slate-700/50 border-slate-600">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-orange-400" />
+                        Anomaly Detection #{index + 1}
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant="outline" 
+                          className={`${
+                            report.threat_level === 'high' ? 'bg-red-900/30 text-red-400 border-red-500/30' :
+                            report.threat_level === 'medium' ? 'bg-yellow-900/30 text-yellow-400 border-yellow-500/30' :
+                            'bg-green-900/30 text-green-400 border-green-500/30'
+                          }`}
+                        >
+                          {report.threat_level?.toUpperCase() || 'UNKNOWN'}
+                        </Badge>
+                        <Badge variant="outline" className="bg-purple-900/30 text-purple-400 border-purple-500/30">
+                          Score: {report.anomaly_score || 0}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                          <MapPin className="h-4 w-4" />
+                          <span>Source IP</span>
+                        </div>
+                        <p className="text-white font-mono">{report.source_ip}</p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                          <Clock className="h-4 w-4" />
+                          <span>Detection Time</span>
+                        </div>
+                        <p className="text-white">{new Date(report.created_at).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                          <Activity className="h-4 w-4" />
+                          <span>Mitigation</span>
+                        </div>
+                        <p className="text-white">{report.mitigation_action || 'Monitor'}</p>
+                      </div>
+                    </div>
+
+                    {report.behavior_pattern && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-300 mb-2">Behavior Pattern Analysis</h4>
+                        <div className="bg-slate-800/50 rounded-lg p-3">
+                          <pre className="text-xs text-slate-300 overflow-x-auto">
+                            {JSON.stringify(report.behavior_pattern, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+
+                    {report.ai_analysis_result && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-300 mb-2">AI Analysis Result</h4>
+                        <div className="bg-slate-800/50 rounded-lg p-3">
+                          <pre className="text-xs text-slate-300 overflow-x-auto">
+                            {JSON.stringify(report.ai_analysis_result, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
