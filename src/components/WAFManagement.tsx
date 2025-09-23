@@ -41,47 +41,33 @@ interface WAFStats {
 interface CustomerDeployment {
   id: string;
   customer_name: string;
+  customer_email?: string;
   domain: string;
   deployment_type: string;
   status: string;
+  api_key: string;
   requests_today: number;
-  threats_blocked: number;
+  requests_total: number;
+  threats_blocked_today: number;
+  threats_blocked_total: number;
   last_seen: string;
+  created_at: string;
+  config_settings: any;
 }
 
 const WAFManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [stats, setStats] = useState<WAFStats>({
-    totalCustomers: 12,
-    activeDeployments: 15,
-    requestsPerSecond: 1250,
-    threatsBlocked: 8742,
+    totalCustomers: 0,
+    activeDeployments: 0,
+    requestsPerSecond: 0,
+    threatsBlocked: 0,
     uptime: 99.98
   });
   
-  const [customers, setCustomers] = useState<CustomerDeployment[]>([
-    {
-      id: '1',
-      customer_name: 'Acme Corp',
-      domain: 'api.acme.com',
-      deployment_type: 'Kubernetes',
-      status: 'active',
-      requests_today: 45230,
-      threats_blocked: 127,
-      last_seen: '2 minutes ago'
-    },
-    {
-      id: '2',
-      customer_name: 'TechStart Inc',
-      domain: 'app.techstart.io',
-      deployment_type: 'Docker',
-      status: 'active',
-      requests_today: 12450,
-      threats_blocked: 43,
-      last_seen: '5 minutes ago'
-    }
-  ]);
+  const [customers, setCustomers] = useState<CustomerDeployment[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [wafConfig, setWafConfig] = useState({
     globalRateLimit: 1000,
@@ -98,26 +84,92 @@ const WAFManagement = () => {
   useEffect(() => {
     loadWAFData();
     generateDeploymentCode();
+    const interval = setInterval(loadWAFData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
   const loadWAFData = async () => {
     try {
-      // Load real WAF statistics from your database
-      const { data: events } = await supabase
+      setLoading(true);
+      
+      // Load customer deployments
+      const { data: customerData, error: customerError } = await supabase
+        .from('customer_deployments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (customerError) throw customerError;
+
+      // Load WAF requests for statistics
+      const { data: requestsData, error: requestsError } = await supabase
+        .from('waf_requests')
+        .select('*')
+        .gte('timestamp', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+      if (requestsError) throw requestsError;
+
+      // Load security events for additional stats
+      const { data: securityEvents, error: securityError } = await supabase
         .from('security_events')
         .select('*')
         .gte('timestamp', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
-      if (events) {
-        setStats(prev => ({
-          ...prev,
-          threatsBlocked: events.filter(e => e.blocked).length,
-          // Update other stats based on real data
-        }));
-      }
+      if (securityError) throw securityError;
+
+      // Process customer data
+      const processedCustomers = (customerData || []).map(customer => ({
+        ...customer,
+        last_seen: formatLastSeen(customer.last_seen)
+      }));
+
+      setCustomers(processedCustomers);
+
+      // Calculate statistics
+      const activeCustomers = customerData?.filter(c => c.status === 'active').length || 0;
+      const totalRequests = requestsData?.length || 0;
+      const blockedRequests = requestsData?.filter(r => r.action === 'block').length || 0;
+      const securityBlocked = securityEvents?.filter(e => e.blocked).length || 0;
+      
+      setStats({
+        totalCustomers: customerData?.length || 0,
+        activeDeployments: activeCustomers,
+        requestsPerSecond: Math.round(totalRequests / (24 * 60 * 60)), // Rough estimate
+        threatsBlocked: blockedRequests + securityBlocked,
+        uptime: 99.98
+      });
+
+      console.log('WAF Data loaded:', {
+        customers: customerData?.length,
+        requests: totalRequests,
+        blocked: blockedRequests
+      });
+
     } catch (error) {
       console.error('Error loading WAF data:', error);
+      toast({
+        title: "Data Load Error",
+        description: "Failed to load WAF management data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const formatLastSeen = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.round(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    
+    const diffHours = Math.round(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    
+    const diffDays = Math.round(diffHours / 24);
+    return `${diffDays} days ago`;
   };
 
   const generateDeploymentCode = () => {
@@ -151,6 +203,44 @@ services:
     toast({
       title: "Copied to clipboard",
       description: "Deployment configuration copied successfully",
+    });
+  };
+
+  const generateTestTraffic = async () => {
+    try {
+      toast({
+        title: "Generating Test Data",
+        description: "Creating sample WAF requests for all customers...",
+      });
+
+      const response = await supabase.functions.invoke('generate-test-traffic');
+
+      console.log('Test traffic response:', response);
+
+      if (response.error) throw response.error;
+
+      toast({
+        title: "Test Data Generated",
+        description: `Created ${response.data?.requests_generated || 0} sample requests`,
+      });
+      
+      // Refresh the data to show new requests
+      loadWAFData();
+    } catch (error) {
+      console.error('Error generating test traffic:', error);
+      toast({
+        title: "Test Data Generation Failed",
+        description: error.message || "Unable to generate test traffic",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const addNewCustomer = async () => {
+    // For now, just show a toast - this could open a modal
+    toast({
+      title: "Add Customer",
+      description: "Customer deployment setup would open here",
     });
   };
 
@@ -303,8 +393,23 @@ services:
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {customers.map((customer) => (
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading customer deployments...</p>
+                </div>
+              ) : customers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-2" />
+                  <p>No customer deployments found</p>
+                  <Button className="mt-4" onClick={() => addNewCustomer()}>
+                    <Users className="w-4 h-4 mr-2" />
+                    Add First Customer
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {customers.map((customer) => (
                   <Card key={customer.id} className="bg-slate-800/50 border-slate-700">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -316,12 +421,12 @@ services:
                           </div>
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-slate-300">
-                          <div className="text-center">
+                  <div className="text-center">
                             <div className="font-medium">{customer.requests_today.toLocaleString()}</div>
                             <div className="text-xs text-slate-500">Requests today</div>
                           </div>
                           <div className="text-center">
-                            <div className="font-medium text-red-400">{customer.threats_blocked}</div>
+                            <div className="font-medium text-red-400">{customer.threats_blocked_today}</div>
                             <div className="text-xs text-slate-500">Threats blocked</div>
                           </div>
                           <Badge variant="outline" className="bg-slate-700 text-slate-300">
@@ -335,8 +440,9 @@ services:
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

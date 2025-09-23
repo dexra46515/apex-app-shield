@@ -40,6 +40,9 @@ verify_jwt = false
 [functions.inline-waf]
 verify_jwt = false
 
+[functions.generate-test-traffic]
+verify_jwt = false
+
 [db]
 port = 54322
 

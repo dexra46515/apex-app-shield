@@ -248,6 +248,60 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_deployments: {
+        Row: {
+          api_key: string
+          config_settings: Json | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          deployment_type: string
+          domain: string
+          id: string
+          last_seen: string | null
+          requests_today: number | null
+          requests_total: number | null
+          status: string
+          threats_blocked_today: number | null
+          threats_blocked_total: number | null
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string
+          config_settings?: Json | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          deployment_type: string
+          domain: string
+          id?: string
+          last_seen?: string | null
+          requests_today?: number | null
+          requests_total?: number | null
+          status?: string
+          threats_blocked_today?: number | null
+          threats_blocked_total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          config_settings?: Json | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          deployment_type?: string
+          domain?: string
+          id?: string
+          last_seen?: string | null
+          requests_today?: number | null
+          requests_total?: number | null
+          status?: string
+          threats_blocked_today?: number | null
+          threats_blocked_total?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       device_attestations: {
         Row: {
           attestation_token: string
@@ -865,6 +919,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      waf_requests: {
+        Row: {
+          action: string
+          customer_id: string
+          id: string
+          processing_time_ms: number
+          request_method: string
+          request_path: string
+          request_size: number | null
+          response_status: number | null
+          rule_matches: string[] | null
+          source_ip: unknown
+          threat_score: number | null
+          threat_type: string | null
+          timestamp: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          customer_id: string
+          id?: string
+          processing_time_ms: number
+          request_method: string
+          request_path: string
+          request_size?: number | null
+          response_status?: number | null
+          rule_matches?: string[] | null
+          source_ip: unknown
+          threat_score?: number | null
+          threat_type?: string | null
+          timestamp?: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          customer_id?: string
+          id?: string
+          processing_time_ms?: number
+          request_method?: string
+          request_path?: string
+          request_size?: number | null
+          response_status?: number | null
+          rule_matches?: string[] | null
+          source_ip?: unknown
+          threat_score?: number | null
+          threat_type?: string | null
+          timestamp?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waf_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_deployments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
