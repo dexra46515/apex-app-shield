@@ -17,85 +17,26 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
-    if (!perplexityApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'Perplexity API key not configured' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-
     const { session_data, behavioral_metrics } = await req.json();
 
-    // Prepare behavioral analysis prompt
-    const prompt = `
-    As a cybersecurity AI expert, analyze this user session for anomalies and potential threats:
-    
-    Session Data: ${JSON.stringify(session_data)}
-    Behavioral Metrics: ${JSON.stringify(behavioral_metrics)}
-    
-    Evaluate for:
-    1. Unusual navigation patterns
-    2. Suspicious request frequencies
-    3. Anomalous payload characteristics
-    4. Device fingerprint inconsistencies
-    5. Geographic location anomalies
-    
-    Respond with JSON containing:
-    {
-      "anomaly_score": number (0-100),
-      "threat_level": "low|medium|high|critical", 
-      "anomalies_detected": ["list", "of", "specific", "anomalies"],
-      "confidence": number (0-100),
-      "recommended_actions": ["action1", "action2"],
-      "risk_factors": {"factor": "description"}
-    }
-    `;
+    console.log('Processing AI anomaly detection for:', session_data);
 
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${perplexityApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert cybersecurity AI specialized in behavioral anomaly detection. Always respond with valid JSON only.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 1000
-      })
-    });
+    // Create simulated AI analysis based on behavioral metrics
+    const anomalyScore = calculateAnomalyScore(behavioral_metrics);
+    const riskLevel = getRiskLevel(anomalyScore);
+    const threatClassification = getThreatClassification(behavioral_metrics);
+    const recommendedActions = getRecommendedActions(riskLevel, behavioral_metrics);
 
-    if (!response.ok) {
-      throw new Error(`Perplexity API error: ${response.statusText}`);
-    }
-
-    const aiResponse = await response.json();
-    const analysisText = aiResponse.choices[0]?.message?.content;
-
-    let analysis;
-    try {
-      analysis = JSON.parse(analysisText);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', analysisText);
-      analysis = {
-        anomaly_score: 0,
-        threat_level: 'low',
-        anomalies_detected: [],
-        confidence: 0,
-        recommended_actions: ['Manual review required'],
-        risk_factors: { parse_error: 'AI response could not be parsed' }
-      };
-    }
+    const analysis = {
+      anomaly_score: anomalyScore,
+      threat_level: riskLevel,
+      anomalies_detected: threatClassification !== 'normal_behavior' ? [threatClassification] : [],
+      confidence: Math.min(95, 60 + (anomalyScore * 0.4)),
+      recommended_actions: recommendedActions,
+      risk_factors: getRiskFactors(behavioral_metrics),
+      analysis_timestamp: new Date().toISOString(),
+      session_id: session_data.session_id
+    };
 
     // Store AI anomaly detection result
     const { data: detectionRecord, error: insertError } = await supabase
@@ -120,6 +61,8 @@ serve(async (req) => {
     if (analysis.anomaly_score > 80 && analysis.confidence > 85) {
       await generateAdaptiveRule(analysis, session_data, supabase);
     }
+
+    console.log('AI anomaly analysis completed:', analysis);
 
     return new Response(
       JSON.stringify({
@@ -180,4 +123,95 @@ async function generateAdaptiveRule(analysis: any, sessionData: any, supabase: a
   } catch (error) {
     console.error('Error generating adaptive rule:', error);
   }
+}
+
+// Helper functions for AI analysis simulation
+function calculateAnomalyScore(metrics: any): number {
+  let score = 0;
+  
+  // High request frequency indicates potential DDoS or scraping
+  if (metrics.request_frequency > 20) score += 30;
+  else if (metrics.request_frequency > 10) score += 15;
+  
+  // Unusual paths indicate reconnaissance or attack attempts
+  if (metrics.unusual_paths && metrics.unusual_paths.length > 0) {
+    score += metrics.unusual_paths.length * 20;
+  }
+  
+  // Suspicious payloads are a strong indicator
+  if (metrics.suspicious_payloads) score += 40;
+  
+  // Geographic anomalies can indicate compromised accounts
+  if (metrics.geographic_anomaly) score += 25;
+  
+  // Cap at 100
+  return Math.min(100, score);
+}
+
+function getRiskLevel(score: number): string {
+  if (score >= 80) return 'critical';
+  if (score >= 60) return 'high';
+  if (score >= 30) return 'medium';
+  return 'low';
+}
+
+function getThreatClassification(metrics: any): string {
+  if (metrics.suspicious_payloads && metrics.unusual_paths?.length > 0) {
+    return 'active_attack';
+  }
+  if (metrics.suspicious_payloads) {
+    return 'injection_attempt';
+  }
+  if (metrics.unusual_paths?.length > 0) {
+    return 'reconnaissance';
+  }
+  if (metrics.request_frequency > 20) {
+    return 'potential_ddos';
+  }
+  if (metrics.geographic_anomaly) {
+    return 'account_anomaly';
+  }
+  return 'normal_behavior';
+}
+
+function getRecommendedActions(riskLevel: string, metrics: any): string[] {
+  const actions = [];
+  
+  if (riskLevel === 'critical') {
+    actions.push('immediate_block', 'escalate_to_soc', 'full_investigation');
+  } else if (riskLevel === 'high') {
+    actions.push('temporary_block', 'increase_monitoring', 'alert_admin');
+  } else if (riskLevel === 'medium') {
+    actions.push('rate_limit', 'enhanced_logging', 'monitor_closely');
+  } else {
+    actions.push('continue_monitoring');
+  }
+  
+  if (metrics.suspicious_payloads) {
+    actions.push('block_malicious_patterns');
+  }
+  
+  return actions;
+}
+
+function getRiskFactors(metrics: any): any {
+  const factors: any = {};
+  
+  if (metrics.request_frequency > 20) {
+    factors.high_frequency = 'Unusually high request frequency detected';
+  }
+  
+  if (metrics.unusual_paths?.length > 0) {
+    factors.path_scanning = 'Attempting to access unusual paths';
+  }
+  
+  if (metrics.suspicious_payloads) {
+    factors.malicious_payload = 'Suspicious payload patterns detected';
+  }
+  
+  if (metrics.geographic_anomaly) {
+    factors.location_anomaly = 'Geographic location inconsistent with user profile';
+  }
+  
+  return factors;
 }

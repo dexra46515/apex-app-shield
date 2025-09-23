@@ -35,7 +35,7 @@ serve(async (req) => {
       case 'sox':
         report = await generateSOXReport(supabase, start_date, end_date);
         break;
-      case 'iso27001':
+      case 'iso_27001':
         report = await generateISO27001Report(supabase, start_date, end_date);
         break;
       default:
