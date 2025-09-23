@@ -198,9 +198,12 @@ const CustomerOnboarding = () => {
       ));
       setCurrentStep(2);
 
+      // Activate all advanced differentiators for new customer
+      await activateAdvancedFeatures(data.id);
+
       toast({
         title: "Customer Created Successfully",
-        description: `${customerData.name} has been onboarded with secure credentials`,
+        description: `${customerData.name} has been onboarded with advanced security features activated`,
       });
 
     } catch (error: any) {
@@ -383,6 +386,64 @@ server {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const activateAdvancedFeatures = async (customerId: string) => {
+    try {
+      // Create initial security rules for customer
+      await supabase.from('adaptive_rules').insert([
+        {
+          name: `Auto-Block SQL Injection - ${customerData.name}`,
+          condition_pattern: { type: 'sql_injection', confidence: 0.8 },
+          action_type: 'block',
+          action_parameters: { response_code: 403 }
+        },
+        {
+          name: `Rate Limiting - ${customerData.name}`,
+          condition_pattern: { type: 'rate_limit', requests_per_minute: 100 },
+          action_type: 'throttle',
+          action_parameters: { delay_ms: 1000 }
+        }
+      ]);
+
+      // Initialize honeypots
+      await supabase.from('honeypots').insert([
+        {
+          name: `Admin Panel Trap - ${customerData.name}`,
+          type: 'admin_endpoint',
+          endpoint_path: '/admin',
+          decoy_response: { message: 'Admin panel loading...', status: 'success' }
+        },
+        {
+          name: `Debug API Trap - ${customerData.name}`,
+          type: 'api_endpoint', 
+          endpoint_path: '/debug/config',
+          decoy_response: { config: 'debug_enabled', sensitive_data: 'fake_keys' }
+        }
+      ]);
+
+      // Activate all advanced analysis features
+      const analysisPromises = [
+        supabase.functions.invoke('ai-anomaly-detector', {
+          body: { customer_id: customerId, mode: 'initialize' }
+        }),
+        supabase.functions.invoke('predictive-ddos-analyzer', {
+          body: { 
+            traffic_data: { requests_per_second: 50, unique_sources: 10 },
+            prediction_window: '1h'
+          }
+        }),
+        supabase.functions.invoke('dynamic-honeypot-generator', {
+          body: { customer_id: customerId, learning_mode: true }
+        })
+      ];
+
+      await Promise.all(analysisPromises);
+      
+      console.log('Advanced security features activated for customer:', customerId);
+    } catch (error) {
+      console.error('Error activating advanced features:', error);
     }
   };
 
