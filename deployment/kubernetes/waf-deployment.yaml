@@ -1,0 +1,206 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: waf-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: waf-config
+  namespace: waf-system
+data:
+  nginx.conf: |
+    # Include your nginx.conf content here
+    # This should be the same as the nginx.conf file
+  supabase-url: "YOUR_SUPABASE_URL"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: waf-secrets
+  namespace: waf-system
+type: Opaque
+stringData:
+  supabase-anon-key: "YOUR_SUPABASE_ANON_KEY"
+  supabase-service-key: "YOUR_SUPABASE_SERVICE_KEY"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: waf-proxy
+  namespace: waf-system
+  labels:
+    app: waf-proxy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: waf-proxy
+  template:
+    metadata:
+      labels:
+        app: waf-proxy
+    spec:
+      containers:
+      - name: waf-proxy
+        image: openresty/openresty:alpine
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        volumeMounts:
+        - name: waf-config
+          mountPath: /usr/local/openresty/nginx/conf/nginx.conf
+          subPath: nginx.conf
+        env:
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: waf-config
+              key: supabase-url
+        - name: SUPABASE_ANON_KEY
+          valueFrom:
+            secretKeyRef:
+              name: waf-secrets
+              key: supabase-anon-key
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: waf-config
+        configMap:
+          name: waf-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: waf-proxy-service
+  namespace: waf-system
+spec:
+  selector:
+    app: waf-proxy
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  - name: https
+    port: 443
+    targetPort: 443
+  type: LoadBalancer
+---
+# Istio Gateway for Service Mesh Integration
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: waf-gateway
+  namespace: waf-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: waf-tls-secret
+    hosts:
+    - "*"
+---
+# Istio Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: waf-routing
+  namespace: waf-system
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - waf-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: waf-proxy-service
+        port:
+          number: 80
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: waf-proxy-hpa
+  namespace: waf-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: waf-proxy
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+# Network Policy for Security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: waf-network-policy
+  namespace: waf-system
+spec:
+  podSelector:
+    matchLabels:
+      app: waf-proxy
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS to Supabase
+    - protocol: TCP
+      port: 80   # HTTP to backend services

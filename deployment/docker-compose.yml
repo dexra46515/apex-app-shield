@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Nginx WAF Proxy
+  waf-proxy:
+    image: openresty/openresty:alpine
+    container_name: waf-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - waf-logs:/var/log/nginx
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    depends_on:
+      - customer-app
+    restart: unless-stopped
+    networks:
+      - waf-network
+
+  # Customer's Application (example)
+  customer-app:
+    image: nginx:alpine
+    container_name: customer-app
+    ports:
+      - "8080:80"
+    volumes:
+      - ./app:/usr/share/nginx/html:ro
+    restart: unless-stopped
+    networks:
+      - waf-network
+
+  # WAF Metrics Collector (optional)
+  waf-metrics:
+    image: prom/prometheus:latest
+    container_name: waf-metrics
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - waf-network
+
+  # Log Aggregator
+  waf-logs:
+    image: grafana/loki:latest
+    container_name: waf-logs
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+      - ./loki.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - waf-network
+
+  # Grafana Dashboard
+  waf-dashboard:
+    image: grafana/grafana:latest
+    container_name: waf-dashboard
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    networks:
+      - waf-network
+
+networks:
+  waf-network:
+    driver: bridge
+
+volumes:
+  waf-logs:
+  prometheus-data:
+  loki-data:
+  grafana-data:
