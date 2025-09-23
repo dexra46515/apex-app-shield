@@ -32,41 +32,31 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="container mx-auto p-6">
-        <Tabs defaultValue="standard" className="space-y-6">
+        <Tabs defaultValue="dashboard" className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
               Enterprise WAF Security Platform
             </h1>
-            <TabsList className="grid grid-cols-8 w-[1600px] bg-slate-800 border-slate-700">
-              <TabsTrigger value="standard" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Dashboard</TabsTrigger>
-              <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced</TabsTrigger>
-              <TabsTrigger value="advanced-security" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced Security</TabsTrigger>
-              <TabsTrigger value="hardware" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Hardware Trust</TabsTrigger>
-              <TabsTrigger value="waf-management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">WAF Mgmt</TabsTrigger>
+            <TabsList className="grid grid-cols-5 w-[800px] bg-slate-800 border-slate-700">
+              <TabsTrigger value="dashboard" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Dashboard</TabsTrigger>
+              <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced Security</TabsTrigger>
               <TabsTrigger value="management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Management</TabsTrigger>
               <TabsTrigger value="deployment" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Deployment</TabsTrigger>
-              <TabsTrigger value="onboarding" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Onboarding</TabsTrigger>
+              <TabsTrigger value="onboarding" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Customer Setup</TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="standard">
+          <TabsContent value="dashboard">
             <SecurityDashboard />
           </TabsContent>
 
           <TabsContent value="advanced">
-            <AdvancedDifferentiatorsPanel />
-          </TabsContent>
-
-          <TabsContent value="advanced-security">
-            <AdvancedSecurityDashboard />
-          </TabsContent>
-
-          <TabsContent value="hardware">
-            <HardwareTrustDashboard />
-          </TabsContent>
-
-          <TabsContent value="waf-management">
-            <WAFManagement />
+            <div className="space-y-6">
+              <AdvancedSecurityDashboard />
+              <AdvancedDifferentiatorsPanel />
+              <HardwareTrustDashboard />
+              <WAFManagement />
+            </div>
           </TabsContent>
 
           <TabsContent value="management">
