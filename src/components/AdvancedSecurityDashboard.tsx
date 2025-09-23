@@ -83,6 +83,11 @@ const AdvancedSecurityDashboard = () => {
   });
   const [honeypots, setHoneypots] = useState<any[]>([]);
   const [honeypotInteractions, setHoneypotInteractions] = useState<any[]>([]);
+  const [resultDialog, setResultDialog] = useState<{ open: boolean; title: string; content: any }>({
+    open: false,
+    title: '',
+    content: null
+  });
 
   const loadAdvancedStats = async () => {
     try {
@@ -520,6 +525,34 @@ const AdvancedSecurityDashboard = () => {
     }
   };
 
+  const viewLatest = async (type: string) => {
+    try {
+      const map: Record<string, { table: string; order: string; title: string }> = {
+        tls: { table: 'tls_fingerprints', order: 'last_seen', title: 'Latest TLS Fingerprint' },
+        flow: { table: 'encrypted_flow_patterns', order: 'detected_at', title: 'Latest Encrypted Flow Analysis' },
+        ddos: { table: 'ddos_predictions', order: 'predicted_at', title: 'Latest DDoS Prediction' },
+        honeypot: { table: 'dynamic_honeypots', order: 'created_at', title: 'Latest Dynamic Honeypot' },
+        ttp: { table: 'attack_ttp_patterns', order: 'created_at', title: 'Latest TTP Pattern' },
+        rule: { table: 'rule_deployments', order: 'start_time', title: 'Latest Rule Deployment' },
+      };
+      const cfg = map[type];
+      if (!cfg) return;
+
+      const { data, error } = await (supabase as any)
+        .from(cfg.table)
+        .select('*')
+        .order(cfg.order, { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      setResultDialog({ open: true, title: cfg.title, content: data || { message: 'No records found.' } });
+    } catch (err: any) {
+      toast({ title: 'Load Failed', description: err.message, variant: 'destructive' });
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading advanced security features...</div>;
   }
@@ -595,6 +628,10 @@ const AdvancedSecurityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold text-cyan-300">{stats.tlsFingerprints}</div>
               <p className="text-xs text-cyan-400/70">JA3 signatures captured</p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={() => triggerAdvancedFeature('tls')} variant="outline" className="border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/10">Run</Button>
+                <Button size="sm" onClick={() => viewLatest('tls')} variant="ghost" className="text-cyan-300 hover:text-white">View latest</Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -606,6 +643,10 @@ const AdvancedSecurityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold text-indigo-300">{stats.encryptedFlows}</div>
               <p className="text-xs text-indigo-400/70">Flow patterns analyzed</p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={() => triggerAdvancedFeature('flow')} variant="outline" className="border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10">Run</Button>
+                <Button size="sm" onClick={() => viewLatest('flow')} variant="ghost" className="text-indigo-300 hover:text-white">View latest</Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -617,6 +658,10 @@ const AdvancedSecurityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold text-red-300">{stats.ddosPredictions}</div>
               <p className="text-xs text-red-400/70">Attack predictions made</p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={() => triggerAdvancedFeature('ddos')} variant="outline" className="border-red-500/50 text-red-300 hover:bg-red-500/10">Run</Button>
+                <Button size="sm" onClick={() => viewLatest('ddos')} variant="ghost" className="text-red-300 hover:text-white">View latest</Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -628,6 +673,10 @@ const AdvancedSecurityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold text-yellow-300">{stats.dynamicHoneypots}</div>
               <p className="text-xs text-yellow-400/70">Auto-generated traps</p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={() => triggerAdvancedFeature('honeypot')} variant="outline" className="border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/10">Run</Button>
+                <Button size="sm" onClick={() => viewLatest('honeypot')} variant="ghost" className="text-yellow-300 hover:text-white">View latest</Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -639,6 +688,10 @@ const AdvancedSecurityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold text-pink-300">{stats.ttpPatterns}</div>
               <p className="text-xs text-pink-400/70">Attack patterns cataloged</p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={() => triggerAdvancedFeature('ttp')} variant="outline" className="border-pink-500/50 text-pink-300 hover:bg-pink-500/10">Run</Button>
+                <Button size="sm" onClick={() => viewLatest('ttp')} variant="ghost" className="text-pink-300 hover:text-white">View latest</Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -650,6 +703,9 @@ const AdvancedSecurityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold text-violet-300">{stats.ruleDeployments}</div>
               <p className="text-xs text-violet-400/70">Shadow → Canary → Prod</p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={() => viewLatest('rule')} variant="outline" className="border-violet-500/50 text-violet-300 hover:bg-violet-500/10">View latest</Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -946,9 +1002,21 @@ const AdvancedSecurityDashboard = () => {
               </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Result viewer for differentiators */}
+        <Dialog open={resultDialog.open} onOpenChange={(o) => setResultDialog(prev => ({ ...prev, open: o }))}>
+          <DialogContent className="max-w-3xl bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">{resultDialog.title}</DialogTitle>
+            </DialogHeader>
+            <div className="rounded-md bg-slate-900/60 p-4 border border-slate-700 overflow-x-auto">
+              <pre className="text-xs text-slate-300 whitespace-pre-wrap">{JSON.stringify(resultDialog.content, null, 2)}</pre>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
   );
 };
 
