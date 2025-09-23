@@ -472,7 +472,7 @@ const WAFManagement = () => {
         avgResponseTime: latestMetrics['average_response_time']?.metric_value || 0,
         requestsProcessed: totalRequests,
         threatsBlocked: blockedRequests + securityBlocked,
-        falsePositives: Math.floor((blockedRequests + securityBlocked) * 0.02), // Estimate 2% false positive rate
+        falsePositives: 0, // Would need manual reporting system to track actual false positives
         blockRate: totalRequests > 0 ? ((blockedRequests + securityBlocked) / totalRequests * 100) : 0
       });
 

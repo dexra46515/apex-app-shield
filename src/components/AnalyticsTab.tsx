@@ -149,7 +149,7 @@ const AnalyticsTab = () => {
       .sort((a, b) => b.requests - a.requests)
       .slice(0, 10);
 
-    // Rule effectiveness (mock data based on security events)
+    // Rule effectiveness from real security events
     const ruleEffectiveness = [
       { rule: 'SQL Injection Protection', matches: events.filter(e => e.threat_type === 'sql_injection').length, blocks: events.filter(e => e.threat_type === 'sql_injection' && e.blocked).length },
       { rule: 'XSS Protection', matches: events.filter(e => e.threat_type === 'xss_attack').length, blocks: events.filter(e => e.threat_type === 'xss_attack' && e.blocked).length },
@@ -165,14 +165,26 @@ const AnalyticsTab = () => {
         avgTime: parseFloat(m.metric_value)
       }));
 
-    // Geographic distribution (mock data)
-    const geographicDistribution = [
-      { country: 'United States', requests: Math.floor(events.length * 0.4), threats: Math.floor(events.filter(e => e.blocked).length * 0.3) },
-      { country: 'China', requests: Math.floor(events.length * 0.2), threats: Math.floor(events.filter(e => e.blocked).length * 0.4) },
-      { country: 'Russia', requests: Math.floor(events.length * 0.15), threats: Math.floor(events.filter(e => e.blocked).length * 0.25) },
-      { country: 'Brazil', requests: Math.floor(events.length * 0.1), threats: Math.floor(events.filter(e => e.blocked).length * 0.05) },
-      { country: 'Other', requests: Math.floor(events.length * 0.15), threats: Math.floor(events.filter(e => e.blocked).length * 0.1) }
-    ];
+    // Geographic distribution from real country data
+    const countryStats = events.reduce((acc, event) => {
+      const country = event.country_code || 'Unknown';
+      if (!acc[country]) {
+        acc[country] = { requests: 0, threats: 0 };
+      }
+      acc[country].requests += 1;
+      if (event.blocked) {
+        acc[country].threats += 1;
+      }
+      return acc;
+    }, {} as Record<string, { requests: number; threats: number }>);
+
+    const geographicDistribution = Object.entries(countryStats)
+      .map(([country, data]) => {
+        const stats = data as { requests: number; threats: number };
+        return { country, requests: stats.requests, threats: stats.threats };
+      })
+      .sort((a, b) => b.requests - a.requests)
+      .slice(0, 10);
 
     return {
       threatsByType,
