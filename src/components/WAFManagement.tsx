@@ -31,6 +31,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import AnalyticsTab from './AnalyticsTab';
 
 interface WAFStats {
   totalCustomers: number;
@@ -654,39 +655,93 @@ services:
 
   const testInlineWAF = async () => {
     try {
+      setLoading(true);
       toast({
-        title: "Testing WAF",
-        description: "Sending test request to inline WAF...",
+        title: "Testing WAF Engine",
+        description: "Sending test request through WAF processing engine...",
       });
 
-      const testRequest = {
-        method: 'GET',
-        url: 'https://test.example.com/api/users',
-        headers: {
-          'User-Agent': 'Test Browser',
-          'X-Forwarded-For': '192.168.1.100'
+      // Create realistic test requests
+      const testRequests = [
+        {
+          method: 'GET',
+          url: 'https://api.company.com/users?id=1',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+            'X-Forwarded-For': '192.168.1.100'
+          },
+          source_ip: '192.168.1.100'
         },
-        source_ip: '192.168.1.100',
-        timestamp: Date.now()
-      };
+        {
+          method: 'POST',
+          url: 'https://api.company.com/login',
+          headers: {
+            'User-Agent': 'sqlmap/1.0',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username: "admin' OR '1'='1", password: 'test' }),
+          source_ip: '45.123.128.221'
+        },
+        {
+          method: 'GET',
+          url: 'https://api.company.com/profile?name=<script>alert(1)</script>',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html'
+          },
+          source_ip: '103.41.21.83'
+        }
+      ];
 
-      const response = await supabase.functions.invoke('inline-waf', {
-        body: testRequest
-      });
+      const results = [];
+      
+      for (const testRequest of testRequests) {
+        try {
+          const { data, error } = await supabase.functions.invoke('waf-engine', {
+            body: testRequest
+          });
 
-      console.log('WAF Test Response:', response);
+          if (error) throw error;
+          results.push({
+            request: testRequest.method + ' ' + new URL(testRequest.url).pathname,
+            result: data
+          });
+        } catch (error) {
+          console.error('Test request failed:', error);
+          results.push({
+            request: testRequest.method + ' ' + new URL(testRequest.url).pathname,
+            result: { action: 'error', reason: error.message }
+          });
+        }
+      }
 
+      // Show results
+      const blockedCount = results.filter(r => r.result.blocked).length;
+      const allowedCount = results.filter(r => r.result.action === 'allow').length;
+      
       toast({
         title: "WAF Test Complete",
-        description: `Action: ${response.data?.action || 'Unknown'} - Processing time: ${response.data?.processing_time_ms || 0}ms`,
+        description: `Processed ${results.length} requests: ${blockedCount} blocked, ${allowedCount} allowed`,
       });
+
+      console.log('WAF Test Results:', results);
+      
+      // Refresh data to show new events
+      setTimeout(() => {
+        loadWAFData();
+        loadSecurityRules();
+      }, 1000);
+
     } catch (error) {
       console.error('WAF test error:', error);
       toast({
         title: "WAF Test Failed",
-        description: error.message || "Failed to test WAF endpoint",
+        description: error.message || "Unable to test WAF engine",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1122,24 +1177,7 @@ services:
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                WAF Analytics Dashboard
-              </CardTitle>
-              <CardDescription>
-                Comprehensive analytics and reporting
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <BarChart3 className="w-12 h-12 mx-auto mb-2" />
-                <p>Advanced analytics dashboard</p>
-                <p className="text-sm">Traffic patterns, threat analysis, and performance metrics</p>
-              </div>
-            </CardContent>
-          </Card>
+          <AnalyticsTab />
         </TabsContent>
       </Tabs>
 
