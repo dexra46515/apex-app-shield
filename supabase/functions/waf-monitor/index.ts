@@ -248,7 +248,7 @@ function analyzeOWASPThreats(eventData: SecurityEventPayload) {
   // Path Traversal
   const pathTraversalPatterns = [
     /\.\.\//,
-    /\.\.\\\/,
+    /\.\.\\/,
     /%2e%2e%2f/i,
     /%2e%2e%5c/i
   ];
