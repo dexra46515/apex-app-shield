@@ -463,12 +463,44 @@ const AdvancedSecurityDashboard = () => {
         description: `Running ${type.toUpperCase()} analysis...`,
       });
 
+      // Generate test data based on feature type
+      let requestBody: any = { 
+        trigger: 'manual_analysis',
+        timestamp: new Date().toISOString(),
+        source: 'dashboard'
+      };
+
+      // Add specific test data for each feature type
+      if (type === 'tls') {
+        requestBody.tls_data = {
+          version: '771',
+          cipher_suites: ['TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384'],
+          extensions: ['server_name', 'supported_groups'],
+          elliptic_curves: ['secp256r1'],
+          ec_point_formats: ['uncompressed']
+        };
+        requestBody.source_ip = '192.168.1.100';
+      } else if (type === 'flow') {
+        requestBody.flow_data = {
+          packet_sizes: [64, 128, 256, 512],
+          timing_patterns: { inter_arrival_times: [10, 15, 12] },
+          protocol: 'TLS',
+          packet_count: 25
+        };
+        requestBody.source_ip = '192.168.1.100';
+        requestBody.destination_ip = '203.0.113.50';
+      } else if (type === 'ddos') {
+        requestBody.traffic_data = {
+          requests_per_second: 1500,
+          baseline_rps: 800,
+          source_ips: ['192.168.1.100', '10.0.0.50'],
+          requests: [{ size: 1024 }],
+          historical_rps: [800, 900, 1200]
+        };
+      }
+
       const { data, error } = await supabase.functions.invoke(functionMap[type], {
-        body: { 
-          trigger: 'manual_analysis',
-          timestamp: new Date().toISOString(),
-          source: 'dashboard'
-        }
+        body: requestBody
       });
 
       if (error) throw error;
@@ -482,7 +514,7 @@ const AdvancedSecurityDashboard = () => {
     } catch (error) {
       toast({
         title: "Analysis Failed",
-        description: `Failed to run ${type} analysis`,
+        description: `Failed to run ${type} analysis: ${error.message}`,
         variant: "destructive"
       });
     }

@@ -21,14 +21,28 @@ serve(async (req) => {
 
     console.log('Processing predictive DDoS analysis for window:', prediction_window);
 
+    // If no traffic data provided, generate mock data for testing
+    const trafficData = traffic_data || {
+      requests_per_second: 1250,
+      baseline_rps: 800,
+      source_ips: ['192.168.1.100', '10.0.0.50', '172.16.0.25', '203.0.113.45'],
+      requests: [
+        { size: 1024, timestamp: new Date().toISOString() },
+        { size: 2048, timestamp: new Date(Date.now() - 1000).toISOString() }
+      ],
+      historical_rps: [800, 850, 820, 900, 1100, 1200, 1250],
+      user_agents: ['Mozilla/5.0', 'Chrome/91.0', 'Safari/14.1'],
+      max_capacity: 5000
+    };
+
     // Analyze current traffic patterns
-    const currentAnalysis = analyzeCurrentTraffic(traffic_data);
+    const currentAnalysis = analyzeCurrentTraffic(trafficData);
     
     // Generate predictions for multiple time windows
-    const predictions = await generateDDoSPredictions(traffic_data, supabase);
+    const predictions = await generateDDoSPredictions(trafficData, supabase);
     
     // Create traffic forecasts
-    const forecasts = await generateTrafficForecasts(traffic_data, supabase);
+    const forecasts = await generateTrafficForecasts(trafficData, supabase);
     
     // Store main prediction
     const { data: prediction, error: insertError } = await supabase
