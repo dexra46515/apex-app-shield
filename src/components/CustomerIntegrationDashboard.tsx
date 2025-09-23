@@ -254,6 +254,40 @@ export default function CustomerIntegrationDashboard() {
     }
   };
 
+  const validateProductionDeployment = async () => {
+    if (!deployment || !deployment.api_key) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('production-deployment-validator', {
+        body: {
+          api_key: deployment.api_key,
+          customer_id: deployment.id,
+          deployment_config: deployment.config_settings
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Production Validation Complete",
+        description: `Deployment score: ${data.validation_results?.overall_score || 0}%. ${data.production_ready ? 'Ready for production!' : 'Needs improvements.'}`,
+      });
+
+      // Update integration step if production ready
+      if (data.production_ready && integrationStep < 4) {
+        setIntegrationStep(4);
+      }
+
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Validation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({
@@ -755,6 +789,21 @@ export default function CustomerIntegrationDashboard() {
                   <Button onClick={generateAPIKey} className="w-full mt-4">
                     <Key className="w-4 h-4 mr-2" />
                     Generate API Key & Activate
+                  </Button>
+                </div>
+              )}
+
+              {deployment && deployment.api_key && (
+                <div className="pt-4 border-t">
+                  <Alert className="bg-green-900/20 border-green-600 text-green-100">
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <AlertDescription>
+                      Your deployment is active! Validate production readiness below.
+                    </AlertDescription>
+                  </Alert>
+                  <Button onClick={validateProductionDeployment} className="w-full mt-4" variant="default">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Validate Production Deployment
                   </Button>
                 </div>
               )}
