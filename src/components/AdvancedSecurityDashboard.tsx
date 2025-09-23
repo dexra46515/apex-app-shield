@@ -64,6 +64,8 @@ const AdvancedSecurityDashboard = () => {
     apiKey: '',
     enabled: false
   });
+  const [honeypots, setHoneypots] = useState<any[]>([]);
+  const [honeypotInteractions, setHoneypotInteractions] = useState<any[]>([]);
 
   const loadAdvancedStats = async () => {
     try {
@@ -76,6 +78,25 @@ const AdvancedSecurityDashboard = () => {
       const { count: honeypotCount } = await supabase
         .from('honeypot_interactions')
         .select('*', { count: 'exact', head: true });
+
+      // Load real honeypots data
+      const { data: honeypotsData, error: honeypotsError } = await supabase
+        .from('honeypots')
+        .select('*')
+        .eq('is_active', true);
+
+      if (honeypotsError) console.error('Error loading honeypots:', honeypotsError);
+      else setHoneypots(honeypotsData || []);
+
+      // Load recent honeypot interactions
+      const { data: interactionsData, error: interactionsError } = await supabase
+        .from('honeypot_interactions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (interactionsError) console.error('Error loading interactions:', interactionsError);
+      else setHoneypotInteractions(interactionsData || []);
 
       // Adaptive Rules
       const { count: adaptiveCount } = await supabase
@@ -494,37 +515,140 @@ const AdvancedSecurityDashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Eye className="w-5 h-5 text-orange-400" />
-                Deception Mesh Network
+                Active Honeypot Network
               </CardTitle>
               <CardDescription className="text-slate-400">
-                Active honeypots to detect and analyze attacker behavior
+                Deception mesh to detect and analyze attacker behavior - Real data from database
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {[
-                    { name: 'Admin Panel', path: '/admin', type: 'web', status: 'active' },
-                    { name: 'API Keys', path: '/api/keys', type: 'api', status: 'active' },
-                    { name: 'DB Backup', path: '/backups/db.sql', type: 'file', status: 'active' },
-                  ].map((honeypot, index) => (
-                    <Card key={index} className="bg-slate-700/50 border-orange-500/30 backdrop-blur-sm">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-medium text-orange-200">{honeypot.name}</div>
-                            <div className="text-sm text-orange-400/70">{honeypot.path}</div>
-                          </div>
-                          <Badge variant="outline" className="bg-green-900/30 text-green-400 border-green-500/30">
-                            {honeypot.status}
-                          </Badge>
-                        </div>
+              <div className="space-y-6">
+                {/* Honeypot Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="bg-orange-900/20 border-orange-500/30">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-orange-300">{honeypots.length}</div>
+                      <div className="text-sm text-slate-400">Active Honeypots</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-red-900/20 border-red-500/30">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-red-300">{stats.honeypotInteractions}</div>
+                      <div className="text-sm text-slate-400">Total Interactions</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-yellow-900/20 border-yellow-500/30">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-yellow-300">
+                        {honeypotInteractions.filter(i => {
+                          const today = new Date();
+                          const interactionDate = new Date(i.created_at);
+                          return interactionDate.toDateString() === today.toDateString();
+                        }).length}
+                      </div>
+                      <div className="text-sm text-slate-400">Today's Interactions</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-purple-900/20 border-purple-500/30">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-purple-300">
+                        {Math.round((stats.honeypotInteractions / Math.max(1, honeypots.length)) * 10) / 10}
+                      </div>
+                      <div className="text-sm text-slate-400">Avg per Honeypot</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Active Honeypots */}
+                <div>
+                  <h4 className="text-lg font-semibold text-white mb-4">🍯 Deployed Honeypots</h4>
+                  {honeypots.length === 0 ? (
+                    <Card className="bg-slate-700/50 border-slate-600">
+                      <CardContent className="p-8 text-center">
+                        <Eye className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                        <p className="text-slate-300 text-lg mb-2">No honeypots deployed</p>
+                        <p className="text-slate-400">Honeypots will appear here when they are configured in the system</p>
                       </CardContent>
                     </Card>
-                  ))}
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {honeypots.map((honeypot) => (
+                        <Card key={honeypot.id} className="bg-slate-700/50 border-orange-500/30 backdrop-blur-sm">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <div className="font-medium text-orange-200">{honeypot.name}</div>
+                                <div className="text-sm text-orange-400/70">{honeypot.endpoint_path}</div>
+                                <div className="text-xs text-slate-400 mt-1">Type: {honeypot.type}</div>
+                              </div>
+                              <Badge variant="outline" className="bg-green-900/30 text-green-400 border-green-500/30">
+                                {honeypot.is_active ? 'ACTIVE' : 'INACTIVE'}
+                              </Badge>
+                            </div>
+                            
+                            {/* Interaction count for this specific honeypot */}
+                            <div className="text-xs text-slate-400 mt-2">
+                              Interactions: {honeypotInteractions.filter(i => i.honeypot_id === honeypot.id).length}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="text-sm text-slate-400">
-                  Total interactions: {stats.honeypotInteractions} | Last 24h: 0
+
+                {/* Recent Interactions */}
+                {honeypotInteractions.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-semibold text-white mb-4">🚨 Recent Interactions</h4>
+                    <div className="space-y-3">
+                      {honeypotInteractions.slice(0, 5).map((interaction, index) => {
+                        const honeypot = honeypots.find(h => h.id === interaction.honeypot_id);
+                        return (
+                          <Card key={interaction.id || index} className="bg-red-900/20 border-red-500/30">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <AlertTriangle className="h-4 w-4 text-red-400" />
+                                    <span className="font-medium text-red-200">
+                                      {honeypot?.name || 'Unknown Honeypot'}
+                                    </span>
+                                    <Badge className="bg-red-900/30 text-red-400 border-red-500/30">
+                                      Threat Score: {interaction.threat_score}
+                                    </Badge>
+                                  </div>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                      <span className="text-slate-400">Source IP:</span>
+                                      <div className="font-mono text-red-300">{interaction.source_ip}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-400">Method:</span>
+                                      <div className="text-red-300">{interaction.request_method}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-400">User Agent:</span>
+                                      <div className="text-red-300 truncate">{interaction.user_agent || 'Unknown'}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-400">Time:</span>
+                                      <div className="text-red-300">{new Date(interaction.created_at).toLocaleString()}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-sm text-slate-400 p-4 bg-slate-800/30 rounded-lg">
+                  ℹ️ <strong>Real Honeypot Data:</strong> This displays actual honeypot deployments and interactions from the database. 
+                  When attackers interact with honeypots, they are automatically logged and analyzed for threat intelligence.
                 </div>
               </div>
             </CardContent>
