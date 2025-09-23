@@ -98,9 +98,13 @@ const HardwareTrustDashboard = () => {
         .from('waf_config')
         .select('config_value')
         .eq('config_key', 'hardware_trust_settings')
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) {
+        console.error('Error loading hardware trust config:', error);
+        return;
+      }
+      
       if (data) {
         setConfig({ ...config, ...(data.config_value as unknown as HardwareTrustConfig) });
       }

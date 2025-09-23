@@ -81,9 +81,10 @@ export default function CustomerIntegrationDashboard() {
       const { data, error } = await supabase
         .from('customer_deployments')
         .select('*')
-        .single();
+        .limit(1)
+        .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error loading deployment:', error);
         return;
       }
