@@ -94,6 +94,27 @@ const WAFManagement = () => {
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showManageCustomer, setShowManageCustomer] = useState(false);
   const [securityRules, setSecurityRules] = useState<any[]>([]);
+  const [showAddRule, setShowAddRule] = useState(false);
+  const [showRuleDetails, setShowRuleDetails] = useState(false);
+  const [selectedRule, setSelectedRule] = useState<any>(null);
+  const [newRule, setNewRule] = useState({
+    name: '',
+    description: '',
+    rule_type: 'owasp',
+    category: 'injection',
+    severity: 'medium',
+    enabled: true,
+    priority: 100,
+    conditions: {
+      fields: ['body', 'query'],
+      patterns: ['']
+    },
+    actions: {
+      log: true,
+      alert: true,
+      action: 'block'
+    }
+  });
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     email: '',
@@ -175,19 +196,25 @@ const WAFManagement = () => {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 ml-4">
-                    <Button size="sm" variant="outline" title="View Rule Details">
-                      <Settings className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant={rule.enabled ? "destructive" : "default"}
-                      onClick={() => toggleRule(rule.id, !rule.enabled)}
-                      title={rule.enabled ? 'Disable Rule' : 'Enable Rule'}
-                    >
-                      {rule.enabled ? 'Disable' : 'Enable'}
-                    </Button>
-                  </div>
+                   <div className="flex gap-2 ml-4">
+                     <Button 
+                       size="sm" 
+                       variant="outline" 
+                       onClick={() => viewRuleDetails(rule)}
+                       title="View Rule Details"
+                     >
+                       <Settings className="w-4 h-4" />
+                     </Button>
+                     <Button 
+                       size="sm" 
+                       variant={rule.enabled ? "destructive" : "default"}
+                       onClick={() => toggleRule(rule.id, !rule.enabled)}
+                       title={rule.enabled ? 'Disable Rule' : 'Enable Rule'}
+                       disabled={loading}
+                     >
+                       {rule.enabled ? 'Disable' : 'Enable'}
+                     </Button>
+                   </div>
                 </div>
               </CardContent>
             </Card>
@@ -198,25 +225,117 @@ const WAFManagement = () => {
   );
 
   const toggleRule = async (ruleId: string, enabled: boolean) => {
+    if (loading) return;
+    
+    setLoading(true);
     try {
       const { error } = await supabase
         .from('security_rules')
-        .update({ enabled })
+        .update({ enabled, updated_at: new Date().toISOString() })
         .eq('id', ruleId);
 
       if (error) throw error;
 
+      // Update local state immediately for better UX
+      setSecurityRules(prev => prev.map(rule => 
+        rule.id === ruleId ? { ...rule, enabled } : rule
+      ));
+
       toast({
         title: "Rule Updated",
-        description: `Security rule ${enabled ? 'enabled' : 'disabled'}`,
+        description: `Security rule ${enabled ? 'enabled' : 'disabled'} successfully`,
       });
 
-      loadSecurityRules(); // Refresh the rules
     } catch (error) {
       console.error('Error toggling rule:', error);
       toast({
         title: "Error",
         description: "Failed to update security rule",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const viewRuleDetails = (rule: any) => {
+    setSelectedRule(rule);
+    setShowRuleDetails(true);
+  };
+
+  const addNewRule = () => {
+    setShowAddRule(true);
+  };
+
+  const createNewRule = async () => {
+    if (!newRule.name || !newRule.description) {
+      toast({
+        title: "Validation Error",
+        description: "Rule name and description are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const patterns = newRule.conditions.patterns.filter(p => p.trim() !== '');
+      if (patterns.length === 0) {
+        toast({
+          title: "Validation Error", 
+          description: "At least one pattern is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const ruleData = {
+        ...newRule,
+        conditions: {
+          ...newRule.conditions,
+          patterns
+        }
+      };
+
+      const { data, error } = await supabase
+        .from('security_rules')
+        .insert(ruleData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Rule Created",
+        description: `Security rule "${newRule.name}" created successfully`,
+      });
+
+      setShowAddRule(false);
+      setNewRule({
+        name: '',
+        description: '',
+        rule_type: 'owasp',
+        category: 'injection',
+        severity: 'medium', 
+        enabled: true,
+        priority: 100,
+        conditions: {
+          fields: ['body', 'query'],
+          patterns: ['']
+        },
+        actions: {
+          log: true,
+          alert: true,
+          action: 'block'
+        }
+      });
+      
+      loadSecurityRules(); // Refresh the list
+
+    } catch (error) {
+      console.error('Error creating rule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create security rule",
         variant: "destructive",
       });
     }
@@ -968,16 +1087,16 @@ services:
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Button onClick={loadSecurityRules}>
-                    <Shield className="w-4 h-4 mr-2" />
-                    Refresh Rules
-                  </Button>
-                  <Button variant="outline">
-                    <Shield className="w-4 h-4 mr-2" />
-                    Add New Rule
-                  </Button>
-                </div>
+                 <div className="flex justify-between items-center">
+                   <Button onClick={loadSecurityRules} disabled={loading}>
+                     <Shield className="w-4 h-4 mr-2" />
+                     Refresh Rules
+                   </Button>
+                   <Button variant="outline" onClick={addNewRule}>
+                     <Shield className="w-4 h-4 mr-2" />
+                     Add New Rule
+                   </Button>
+                 </div>
                 
                 {loading ? (
                   <div className="text-center py-8">
@@ -1144,6 +1263,286 @@ services:
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowManageCustomer(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Rule Modal */}
+      <Dialog open={showAddRule} onOpenChange={setShowAddRule}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Security Rule</DialogTitle>
+            <DialogDescription>
+              Create a new security rule for WAF protection
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="rule-name">Rule Name</Label>
+                <Input
+                  id="rule-name"
+                  value={newRule.name}
+                  onChange={(e) => setNewRule(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="SQL Injection Protection"
+                />
+              </div>
+              <div>
+                <Label htmlFor="rule-severity">Severity</Label>
+                <Select value={newRule.severity} onValueChange={(value) => setNewRule(prev => ({ ...prev, severity: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="rule-description">Description</Label>
+              <Textarea
+                id="rule-description"
+                value={newRule.description}
+                onChange={(e) => setNewRule(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Detects and blocks SQL injection attempts"
+                rows={2}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="rule-type">Rule Type</Label>
+                <Select value={newRule.rule_type} onValueChange={(value) => setNewRule(prev => ({ ...prev, rule_type: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="owasp">OWASP</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                    <SelectItem value="bot">Bot Detection</SelectItem>
+                    <SelectItem value="ddos">DDoS Protection</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="rule-category">Category</Label>
+                <Select value={newRule.category} onValueChange={(value) => setNewRule(prev => ({ ...prev, category: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="injection">Injection</SelectItem>
+                    <SelectItem value="xss">XSS</SelectItem>
+                    <SelectItem value="rate_limit">Rate Limiting</SelectItem>
+                    <SelectItem value="automation">Automation</SelectItem>
+                    <SelectItem value="malware">Malware</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="rule-priority">Priority (1-1000)</Label>
+              <Input
+                id="rule-priority"
+                type="number"
+                min="1"
+                max="1000"
+                value={newRule.priority}
+                onChange={(e) => setNewRule(prev => ({ ...prev, priority: parseInt(e.target.value) || 100 }))}
+              />
+            </div>
+
+            <div>
+              <Label>Detection Patterns (one per line)</Label>
+              <Textarea
+                value={newRule.conditions.patterns.join('\n')}
+                onChange={(e) => {
+                  const patterns = e.target.value.split('\n').filter(p => p.trim() !== '');
+                  setNewRule(prev => ({ 
+                    ...prev, 
+                    conditions: { ...prev.conditions, patterns }
+                  }));
+                }}
+                placeholder="union.*select&#10;drop.*table&#10;exec.*xp_"
+                rows={4}
+              />
+            </div>
+
+            <div>
+              <Label>Target Fields</Label>
+              <div className="flex gap-2 mt-2">
+                {['body', 'query', 'headers', 'path', 'user_agent'].map(field => (
+                  <Button
+                    key={field}
+                    size="sm"
+                    variant={newRule.conditions.fields.includes(field) ? 'default' : 'outline'}
+                    onClick={() => {
+                      const fields = newRule.conditions.fields.includes(field)
+                        ? newRule.conditions.fields.filter(f => f !== field)
+                        : [...newRule.conditions.fields, field];
+                      setNewRule(prev => ({ 
+                        ...prev, 
+                        conditions: { ...prev.conditions, fields }
+                      }));
+                    }}
+                  >
+                    {field}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label>Actions</Label>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={newRule.actions.log}
+                      onCheckedChange={(checked) => setNewRule(prev => ({
+                        ...prev,
+                        actions: { ...prev.actions, log: checked }
+                      }))}
+                    />
+                    <Label>Log Event</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={newRule.actions.alert}
+                      onCheckedChange={(checked) => setNewRule(prev => ({
+                        ...prev,
+                        actions: { ...prev.actions, alert: checked }
+                      }))}
+                    />
+                    <Label>Send Alert</Label>
+                  </div>
+                </div>
+                <div>
+                  <Label>Action Type</Label>
+                  <Select 
+                    value={newRule.actions.action} 
+                    onValueChange={(value) => setNewRule(prev => ({
+                      ...prev,
+                      actions: { ...prev.actions, action: value }
+                    }))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="block">Block Request</SelectItem>
+                      <SelectItem value="challenge">Challenge</SelectItem>
+                      <SelectItem value="rate_limit">Rate Limit</SelectItem>
+                      <SelectItem value="monitor">Monitor Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddRule(false)}>Cancel</Button>
+            <Button onClick={createNewRule}>Create Rule</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rule Details Modal */}
+      <Dialog open={showRuleDetails} onOpenChange={setShowRuleDetails}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Security Rule Details</DialogTitle>
+            <DialogDescription>
+              Detailed view of security rule configuration
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRule && (
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Rule Name</Label>
+                  <Input value={selectedRule.name} readOnly />
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant={selectedRule.enabled ? 'default' : 'secondary'}>
+                      {selectedRule.enabled ? 'Enabled' : 'Disabled'}
+                    </Badge>
+                    <Badge variant="outline">{selectedRule.severity}</Badge>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <Label>Description</Label>
+                <Textarea value={selectedRule.description} readOnly rows={2} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Type</Label>
+                  <Input value={selectedRule.rule_type} readOnly />
+                </div>
+                <div>
+                  <Label>Category</Label>
+                  <Input value={selectedRule.category} readOnly />
+                </div>
+                <div>
+                  <Label>Priority</Label>
+                  <Input value={selectedRule.priority} readOnly />
+                </div>
+              </div>
+
+              {selectedRule.conditions && (
+                <div>
+                  <Label>Rule Conditions</Label>
+                  <div className="mt-2 p-3 bg-muted rounded-md">
+                    <pre className="text-sm whitespace-pre-wrap">
+                      {JSON.stringify(selectedRule.conditions, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {selectedRule.actions && (
+                <div>
+                  <Label>Rule Actions</Label>
+                  <div className="mt-2 p-3 bg-muted rounded-md">
+                    <pre className="text-sm whitespace-pre-wrap">
+                      {JSON.stringify(selectedRule.actions, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                <div>
+                  <Label>Created</Label>
+                  <p>{new Date(selectedRule.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <Label>Last Updated</Label>
+                  <p>{new Date(selectedRule.updated_at).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRuleDetails(false)}>Close</Button>
+            <Button variant="destructive" onClick={() => {
+              if (selectedRule) {
+                toggleRule(selectedRule.id, !selectedRule.enabled);
+                setShowRuleDetails(false);
+              }
+            }}>
+              {selectedRule?.enabled ? 'Disable Rule' : 'Enable Rule'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
