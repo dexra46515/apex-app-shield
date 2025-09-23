@@ -30,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import ComplianceReports from './ComplianceReports';
+import HoneypotManagement from './HoneypotManagement';
 
 interface AdvancedSecurityStats {
   aiAnomalies: number;
@@ -258,9 +259,13 @@ const AdvancedSecurityDashboard = () => {
     }
   };
 
+  const loadAdvancedFeatures = async () => {
+    await loadAdvancedStats();
+    await loadSiemStatus();
+  };
+
   useEffect(() => {
-    loadAdvancedStats();
-    loadSiemStatus();
+    loadAdvancedFeatures();
   }, []);
 
   const loadSiemStatus = async () => {
@@ -511,6 +516,14 @@ const AdvancedSecurityDashboard = () => {
         </TabsContent>
 
         <TabsContent value="honeypots" className="space-y-4">
+          <HoneypotManagement 
+            honeypots={honeypots} 
+            onHoneypotCreated={() => {
+              // Refresh honeypots data
+              loadAdvancedFeatures();
+            }} 
+          />
+        </TabsContent>
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
