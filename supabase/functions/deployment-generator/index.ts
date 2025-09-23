@@ -206,90 +206,6 @@ server {
     }
 }`;
 
-  const envoyConfig = `# Envoy WAF Configuration for ${customerName}
-# Domain: ${domain}
-# Generated: ${new Date().toISOString()}
-
-static_resources:
-  listeners:
-  - name: listener_0
-    address:
-      socket_address:
-        protocol: TCP
-        address: 0.0.0.0
-        port_value: 80
-    filter_chains:
-    - filters:
-      - name: envoy.filters.network.http_connection_manager
-        typed_config:
-          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-          stat_prefix: ingress_http
-          access_log:
-          - name: envoy.access_loggers.stdout
-            typed_config:
-              "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
-          http_filters:
-          - name: envoy.filters.http.waf
-            typed_config:
-              "@type": type.googleapis.com/udpa.type.v1.TypedStruct
-              type_url: type.googleapis.com/envoy.extensions.filters.http.waf.v3.Waf
-              value:
-                config:
-                  waf_endpoint: "https://kgazsoccrtmhturhxggi.supabase.co/functions/v1/inline-waf"
-                  api_key: "${apiKey}"
-                  customer_domain: "${domain}"
-                  timeout: 5s
-                  fail_mode: "open"
-          - name: envoy.filters.http.router
-            typed_config:
-              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-          route_config:
-            name: local_route
-            virtual_hosts:
-            - name: local_service
-              domains: ["${domain}", "*"]
-              routes:
-              - match:
-                  prefix: "/"
-                route:
-                  cluster: backend_cluster
-                  timeout: 30s
-
-  clusters:
-  - name: backend_cluster
-    connect_timeout: 5s
-    type: LOGICAL_DNS
-    dns_lookup_family: V4_ONLY
-    lb_policy: LEAST_REQUEST
-    load_assignment:
-      cluster_name: backend_cluster
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: backend1.internal
-                port_value: 8080
-        - endpoint:
-            address:
-              socket_address:
-                address: backend2.internal
-                port_value: 8080
-    health_checks:
-    - timeout: 5s
-      interval: 10s
-      unhealthy_threshold: 2
-      healthy_threshold: 2
-      http_health_check:
-        path: "/health"
-
-admin:
-  address:
-    socket_address:
-      protocol: TCP
-      address: 0.0.0.0
-      port_value: 9901`;
-
   const dockerCompose = `# Docker Compose for ${customerName} WAF Deployment
 # Domain: ${domain}
 # Generated: ${new Date().toISOString()}
@@ -365,8 +281,13 @@ networks:
 
   return {
     nginx_config: nginxConfig,
-    envoy_config: envoyConfig,
-    docker_compose: dockerCompose
+    docker_compose: dockerCompose,
+    model: 'reverse-proxy',
+    status: 'generated',
+    files: [
+      { name: 'nginx.conf', content: nginxConfig },
+      { name: 'docker-compose.yml', content: dockerCompose }
+    ]
   };
 }
 
@@ -509,363 +430,291 @@ spec:
           service:
             name: ${customerName.replace(/[^a-zA-Z0-9]/g, '-')}-waf-service
             port:
-              number: 80
+              number: 80`;
 
----
+  const helmChart = `# Helm Chart values for ${customerName}
+# Domain: ${domain}
+# Generated: ${new Date().toISOString()}
 
-apiVersion: v1
-kind: Secret
-metadata:
-  name: waf-secrets
-  namespace: ${namespace}
-type: Opaque
-data:
-  api-key: ${btoa(apiKey)}
+replicaCount: 3
 
----
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  tag: "alpine"
 
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: waf-config
-  namespace: ${namespace}
-data:
-  nginx.conf: |
-    events {
-        worker_connections 1024;
-    }
-    
-    http {
-        upstream backend {
-            server backend-service.default.svc.cluster.local:8080;
-        }
-        
-        server {
-            listen 80;
-            server_name ${domain};
-            
-            location / {
-                proxy_pass http://backend;
-                proxy_set_header Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            }
-            
-            location /health {
-                return 200 "healthy";
-                add_header Content-Type text/plain;
-            }
-        }
-    }`;
+nameOverride: ""
+fullnameOverride: "${customerName.replace(/[^a-zA-Z0-9]/g, '-')}-waf"
 
-  const hpa = `# Horizontal Pod Autoscaler for ${customerName}
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: ${customerName.replace(/[^a-zA-Z0-9]/g, '-')}-waf-hpa
-  namespace: ${namespace}
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: ${customerName.replace(/[^a-zA-Z0-9]/g, '-')}-waf
-  minReplicas: 2
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+  httpsPort: 443
+
+ingress:
+  enabled: true
+  className: "${ingressClass}"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: ${domain}
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ${customerName.replace(/[^a-zA-Z0-9]/g, '-')}-tls
+      hosts:
+        - ${domain}
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
   maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80`;
+  targetCPUUtilizationPercentage: 80
 
-  const networkPolicy = `# Network Policy for ${customerName}
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: ${customerName.replace(/[^a-zA-Z0-9]/g, '-')}-waf-netpol
-  namespace: ${namespace}
-spec:
-  podSelector:
-    matchLabels:
-      app: waf-proxy
-      customer: "${customerName.replace(/[^a-zA-Z0-9]/g, '-')}"
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: ingress-nginx
-    ports:
-    - protocol: TCP
-      port: 80
-    - protocol: TCP
-      port: 443
-  egress:
-  - to: []
-    ports:
-    - protocol: TCP
-      port: 443  # HTTPS to WAF API
-    - protocol: TCP
-      port: 8080 # Backend services`;
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+waf:
+  apiKey: "${apiKey}"
+  domain: "${domain}"
+  customerName: "${customerName}"`;
 
   return {
     deployment_yaml: deployment,
-    hpa_yaml: hpa,
-    network_policy_yaml: networkPolicy
+    helm_values: helmChart,
+    model: 'kubernetes',
+    status: 'generated',
+    files: [
+      { name: 'deployment.yaml', content: deployment },
+      { name: 'values.yaml', content: helmChart }
+    ]
   };
 }
 
 function generateOnPremiseArtifacts(domain: string, apiKey: string, customerName: string, config: any) {
   const applianceIP = config?.applianceIP || '192.168.1.100';
-  const managementPort = config?.managementPort || '8443';
+  const managementPort = config?.managementPort || '9443';
   
-  const vmwareTemplate = `# VMware vSphere Template for ${customerName}
+  const ansiblePlaybook = `# Ansible Playbook for ${customerName} On-Premise WAF
 # Domain: ${domain}
 # Generated: ${new Date().toISOString()}
 
-# VM Configuration
-vm_name: "${customerName.replace(/[^a-zA-Z0-9]/g, '-')}-waf-appliance"
-vm_hardware_version: 19
-vm_guest_os: "ubuntu64Guest"
+---
+- name: Deploy WAF Appliance for ${customerName}
+  hosts: waf_appliances
+  become: yes
+  vars:
+    customer_name: "${customerName}"
+    domain: "${domain}"
+    api_key: "${apiKey}"
+    appliance_ip: "${applianceIP}"
+    management_port: "${managementPort}"
+    
+  tasks:
+    - name: Update system packages
+      package:
+        name: "*"
+        state: latest
+        
+    - name: Install required packages
+      package:
+        name:
+          - nginx
+          - openssl
+          - curl
+          - wget
+          - python3
+          - python3-pip
+        state: present
+        
+    - name: Create WAF user
+      user:
+        name: waf
+        system: yes
+        shell: /bin/bash
+        home: /opt/waf
+        createhome: yes
+        
+    - name: Create SSL directory
+      file:
+        path: /etc/ssl/waf
+        state: directory
+        owner: waf
+        group: waf
+        mode: '0700'
+        
+    - name: Generate self-signed certificate
+      command: |
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 
+        -keyout /etc/ssl/waf/{{ domain }}.key 
+        -out /etc/ssl/waf/{{ domain }}.crt 
+        -subj "/C=US/ST=State/L=City/O=Organization/CN={{ domain }}"
+      args:
+        creates: /etc/ssl/waf/{{ domain }}.crt
+        
+    - name: Set certificate permissions
+      file:
+        path: "{{ item }}"
+        owner: waf
+        group: waf
+        mode: '0600'
+      with_items:
+        - /etc/ssl/waf/{{ domain }}.key
+        - /etc/ssl/waf/{{ domain }}.crt
+        
+    - name: Create nginx configuration
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart nginx
+      
+    - name: Create WAF monitoring script
+      template:
+        src: waf_monitor.py.j2
+        dest: /opt/waf/monitor.py
+        owner: waf
+        group: waf
+        mode: '0755'
+        
+    - name: Create systemd service for WAF monitor
+      template:
+        src: waf-monitor.service.j2
+        dest: /etc/systemd/system/waf-monitor.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: 
+        - reload systemd
+        - restart waf-monitor
+        
+    - name: Enable and start services
+      systemd:
+        name: "{{ item }}"
+        enabled: yes
+        state: started
+      with_items:
+        - nginx
+        - waf-monitor
+        
+  handlers:
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+        
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+        
+    - name: restart waf-monitor
+      systemd:
+        name: waf-monitor
+        state: restarted`;
 
-# Resources
-vm_cpu_count: 4
-vm_memory_mb: 8192
-vm_disk_size_gb: 100
-
-# Network
-vm_network: "Production_Network"
-vm_ip_address: "${applianceIP}"
-vm_netmask: "255.255.255.0"
-vm_gateway: "192.168.1.1"
-vm_dns_servers:
-  - "8.8.8.8"
-  - "8.8.4.4"
-
-# Storage
-vm_datastore: "Production_Datastore"
-vm_disk_provisioning: "thin"
-
-# Advanced Settings
-vm_cpu_reservation: 2000  # MHz
-vm_memory_reservation: 4096  # MB
-vm_cpu_limit: -1  # Unlimited
-vm_memory_limit: -1  # Unlimited
-
-# HA Configuration
-vm_ha_enabled: true
-vm_drs_enabled: true
-vm_drs_behavior: "fullyAutomated"
-
-# Security
-vm_secure_boot: true
-vm_vtpm_enabled: true`;
-
-  const cloudInit = `#cloud-config
-# Cloud-init configuration for ${customerName} WAF Appliance
+  const vmTemplate = `# VM Template for ${customerName} WAF Appliance
+# Domain: ${domain}
 # Generated: ${new Date().toISOString()}
 
-hostname: ${customerName.replace(/[^a-zA-Z0-9]/g, '-')}-waf
-fqdn: ${customerName.replace(/[^a-zA-Z0-9]/g, '-')}-waf.${domain}
+# Minimum VM Requirements:
+# - CPU: 4 cores
+# - RAM: 8GB
+# - Storage: 100GB SSD
+# - Network: 2 NICs (management + traffic)
 
-users:
-  - name: wafadmin
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-    ssh_authorized_keys:
-      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDH... # Replace with actual public key
+# Network Configuration
+network:
+  management:
+    ip: ${applianceIP}
+    netmask: 255.255.255.0
+    gateway: 192.168.1.1
+    dns: [8.8.8.8, 8.8.4.4]
+  
+  traffic:
+    mode: bridge
+    interface: eth1
 
-packages:
-  - docker.io
-  - docker-compose
-  - nginx
-  - fail2ban
-  - ufw
-  - htop
-  - curl
-  - wget
-  - unzip
+# WAF Configuration
+waf:
+  customer: "${customerName}"
+  domain: "${domain}"
+  api_key: "${apiKey}"
+  management_port: ${managementPort}
+  
+  rules:
+    - name: "Rate Limiting"
+      type: "rate_limit"
+      threshold: 100
+      window: 60
+      
+    - name: "SQL Injection Protection"
+      type: "signature"
+      pattern: "union|select|insert|update|delete"
+      action: "block"
+      
+    - name: "XSS Protection"
+      type: "signature"
+      pattern: "<script|javascript:|vbscript:|onload="
+      action: "block"
 
-write_files:
-  - path: /opt/waf/config.yaml
-    content: |
-      customer:
-        name: "${customerName}"
-        domain: "${domain}"
-        api_key: "${apiKey}"
-      network:
-        management_ip: "${applianceIP}"
-        management_port: ${managementPort}
-        data_interfaces:
-          - eth1
-          - eth2
-      security:
-        enable_fail2ban: true
-        enable_ufw: true
-        ssh_port: 22
-      monitoring:
-        enable_prometheus: true
-        enable_grafana: true
-        retention_days: 30
-    permissions: '0600'
-    owner: wafadmin:wafadmin
-
-  - path: /opt/waf/docker-compose.yml
-    content: |
-      version: '3.8'
-      services:
-        waf-engine:
-          image: waf-enterprise:latest
-          container_name: waf-engine
-          ports:
-            - "80:80"
-            - "443:443"
-            - "${managementPort}:8443"
-          volumes:
-            - /opt/waf/config:/etc/waf/config:ro
-            - /opt/waf/ssl:/etc/ssl:ro
-            - /opt/waf/logs:/var/log/waf
-          environment:
-            - CUSTOMER_NAME=${customerName}
-            - DOMAIN=${domain}
-            - API_KEY=${apiKey}
-            - MANAGEMENT_IP=${applianceIP}
-          restart: unless-stopped
-          networks:
-            - waf-network
-          cap_add:
-            - NET_ADMIN
-            - SYS_ADMIN
-
-        prometheus:
-          image: prom/prometheus:latest
-          container_name: prometheus
-          ports:
-            - "9090:9090"
-          volumes:
-            - /opt/waf/prometheus:/etc/prometheus:ro
-            - prometheus_data:/prometheus
-          restart: unless-stopped
-          networks:
-            - waf-network
-
-        grafana:
-          image: grafana/grafana:latest
-          container_name: grafana
-          ports:
-            - "3000:3000"
-          volumes:
-            - grafana_data:/var/lib/grafana
-          environment:
-            - GF_SECURITY_ADMIN_PASSWORD=admin123
-          restart: unless-stopped
-          networks:
-            - waf-network
-
-      volumes:
-        prometheus_data:
-        grafana_data:
-
-      networks:
-        waf-network:
-          driver: bridge
-    permissions: '0644'
-    owner: wafadmin:wafadmin
-
-runcmd:
-  - systemctl enable docker
-  - systemctl start docker
-  - usermod -aG docker wafadmin
-  - ufw enable
-  - ufw allow 22/tcp
-  - ufw allow 80/tcp
-  - ufw allow 443/tcp
-  - ufw allow ${managementPort}/tcp
-  - cd /opt/waf && docker-compose up -d
-  - systemctl enable fail2ban
-  - systemctl start fail2ban
-
-final_message: "WAF Appliance for ${customerName} is ready!"`;
-
-  const haproxyConfig = `# HAProxy Configuration for ${customerName} HA Setup
-# Generated: ${new Date().toISOString()}
-
-global
-    daemon
-    chroot /var/lib/haproxy
-    stats socket /run/haproxy/admin.sock mode 660 level admin
-    stats timeout 30s
-    user haproxy
-    group haproxy
-    
-    # Security
-    ssl-default-bind-ciphers ECDHE+AESGCM:ECDHE+CHACHA20:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
-    ssl-default-bind-options ssl-min-ver TLSv1.2 no-tls-tickets
-
-defaults
-    mode http
-    timeout connect 5000ms
-    timeout client 50000ms
-    timeout server 50000ms
-    option httplog
-    option dontlognull
-    option redispatch
-    retries 3
-
-# Statistics
-stats enable
-stats uri /haproxy-stats
-stats refresh 30s
-stats hide-version
-stats auth admin:secure123
-
-# Frontend for ${customerName}
-frontend ${customerName.replace(/[^a-zA-Z0-9]/g, '_')}_frontend
-    bind *:80
-    bind *:443 ssl crt /etc/ssl/certs/${domain}.pem
-    redirect scheme https if !{ ssl_fc }
-    
-    # WAF Integration
-    http-request set-header X-Customer-Name "${customerName}"
-    http-request set-header X-Domain "${domain}"
-    
-    default_backend ${customerName.replace(/[^a-zA-Z0-9]/g, '_')}_waf_backend
-
-# Backend WAF Engines
-backend ${customerName.replace(/[^a-zA-Z0-9]/g, '_')}_waf_backend
-    balance roundrobin
-    option httpchk GET /health
-    
-    # Primary WAF Appliance
-    server waf1 ${applianceIP}:80 check inter 5s fall 3 rise 2
-    
-    # Secondary WAF Appliance (for HA)
-    server waf2 192.168.1.101:80 check inter 5s fall 3 rise 2 backup
-    
-    # Health check configuration
-    http-check send meth GET uri /health ver HTTP/1.1 hdr Host ${domain}
-    http-check expect status 200`;
+# Monitoring Configuration
+monitoring:
+  enabled: true
+  metrics_port: 9090
+  log_level: "info"
+  syslog_server: "192.168.1.10:514"
+  
+  alerts:
+    - name: "High CPU Usage"
+      condition: "cpu > 80"
+      action: "email"
+      
+    - name: "Attack Detected"
+      condition: "blocked_requests > 10"
+      action: "siem"`;
 
   return {
-    vmware_template: vmwareTemplate,
-    cloud_init: cloudInit,
-    haproxy_config: haproxyConfig
+    ansible_playbook: ansiblePlaybook,
+    vm_template: vmTemplate,
+    model: 'on-premise',
+    status: 'generated',
+    files: [
+      { name: 'deploy-appliance.yml', content: ansiblePlaybook },
+      { name: 'vm-template.yml', content: vmTemplate }
+    ]
   };
 }
 
 function generateHybridCloudArtifacts(domain: string, apiKey: string, customerName: string, config: any) {
-  const cloudEndpoint = config?.cloudEndpoint || 'https://kgazsoccrtmhturhxggi.supabase.co';
+  const regions = config?.regions || ['us-east-1', 'us-west-2', 'eu-west-1'];
   
-  const terraformMain = `# Terraform Configuration for ${customerName} Hybrid Cloud Deployment
+  const terraformMain = `# Terraform configuration for ${customerName} Hybrid Cloud WAF
 # Domain: ${domain}
 # Generated: ${new Date().toISOString()}
 
@@ -876,22 +725,18 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.0"
-    }
   }
 }
 
 # Variables
 variable "customer_name" {
-  description = "Customer name"
+  description = "Customer name for tagging"
   type        = string
   default     = "${customerName}"
 }
 
 variable "domain" {
-  description = "Customer domain"
+  description = "Domain name for WAF protection"
   type        = string
   default     = "${domain}"
 }
@@ -906,632 +751,108 @@ variable "api_key" {
 variable "regions" {
   description = "AWS regions for deployment"
   type        = list(string)
-  default     = ["us-east-1", "us-west-2", "eu-west-1"]
+  default     = ${JSON.stringify(regions)}
 }
 
 # Data sources
 data "aws_availability_zones" "available" {
-  state = "available"
+  for_each = toset(var.regions)
+  provider = aws.region[each.key]
+  state    = "available"
 }
 
-# VPC for each region
-resource "aws_vpc" "waf_vpc" {
-  count = length(var.regions)
+# Providers for multi-region
+${regions.map(region => `
+provider "aws" {
+  alias  = "${region.replace(/-/g, '_')}"
+  region = "${region}"
+}`).join('\n')}
+
+# WAF instances in each region
+${regions.map(region => `
+module "waf_${region.replace(/-/g, '_')}" {
+  source = "./modules/waf-instance"
   
-  cidr_block           = "10.${count.index}.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+  providers = {
+    aws = aws.${region.replace(/-/g, '_')}
+  }
+  
+  customer_name = var.customer_name
+  domain        = var.domain
+  api_key       = var.api_key
+  region        = "${region}"
   
   tags = {
-    Name     = "\${var.customer_name}-waf-vpc-\${var.regions[count.index]}"
-    Customer = var.customer_name
-    Purpose  = "WAF-Hybrid-Cloud"
+    Customer    = var.customer_name
+    Environment = "production"
+    Region      = "${region}"
+    ManagedBy   = "terraform"
   }
-}
+}`).join('\n\n')}
 
-# Internet Gateway
-resource "aws_internet_gateway" "waf_igw" {
-  count  = length(var.regions)
-  vpc_id = aws_vpc.waf_vpc[count.index].id
-  
-  tags = {
-    Name     = "\${var.customer_name}-waf-igw-\${var.regions[count.index]}"
-    Customer = var.customer_name
-  }
-}
-
-# Public Subnets
-resource "aws_subnet" "waf_public" {
-  count = length(var.regions) * 2
-  
-  vpc_id                  = aws_vpc.waf_vpc[floor(count.index / 2)].id
-  cidr_block              = "10.${floor(count.index / 2)}.${(count.index % 2) + 1}.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[count.index % 2]
-  map_public_ip_on_launch = true
-  
-  tags = {
-    Name     = "\${var.customer_name}-waf-public-\${floor(count.index / 2)}-\${count.index % 2}"
-    Customer = var.customer_name
-    Type     = "Public"
-  }
-}
-
-# Security Groups
-resource "aws_security_group" "waf_sg" {
-  count       = length(var.regions)
-  name_prefix = "\${var.customer_name}-waf-sg"
-  vpc_id      = aws_vpc.waf_vpc[count.index].id
-  
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/8"]
-  }
-  
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  
-  tags = {
-    Name     = "\${var.customer_name}-waf-sg-\${var.regions[count.index]}"
-    Customer = var.customer_name
-  }
-}
-
-# Launch Template
-resource "aws_launch_template" "waf_template" {
-  count = length(var.regions)
-  
-  name_prefix   = "\${var.customer_name}-waf-"
-  image_id      = "ami-0c02fb55956c7d316" # Amazon Linux 2
-  instance_type = "t3.medium"
-  
-  vpc_security_group_ids = [aws_security_group.waf_sg[count.index].id]
-  
-  user_data = base64encode(templatefile("\${path.module}/user_data.sh", {
-    customer_name  = var.customer_name
-    domain        = var.domain
-    api_key       = var.api_key
-    cloud_endpoint = "${cloudEndpoint}"
-    region        = var.regions[count.index]
-  }))
-  
-  tag_specifications {
-    resource_type = "instance"
-    tags = {
-      Name     = "\${var.customer_name}-waf-instance"
-      Customer = var.customer_name
-      Region   = var.regions[count.index]
-    }
-  }
-}
-
-# Auto Scaling Group
-resource "aws_autoscaling_group" "waf_asg" {
-  count = length(var.regions)
-  
-  name                = "\${var.customer_name}-waf-asg-\${var.regions[count.index]}"
-  vpc_zone_identifier = [aws_subnet.waf_public[count.index * 2].id, aws_subnet.waf_public[count.index * 2 + 1].id]
-  target_group_arns   = [aws_lb_target_group.waf_tg[count.index].arn]
-  health_check_type   = "ELB"
-  
-  min_size         = 2
-  max_size         = 10
-  desired_capacity = 3
-  
-  launch_template {
-    id      = aws_launch_template.waf_template[count.index].id
-    version = "$Latest"
-  }
-  
-  tag {
-    key                 = "Name"
-    value               = "\${var.customer_name}-waf-asg"
-    propagate_at_launch = true
-  }
-  
-  tag {
-    key                 = "Customer"
-    value               = var.customer_name
-    propagate_at_launch = true
-  }
-}
-
-# Application Load Balancer
-resource "aws_lb" "waf_alb" {
-  count = length(var.regions)
-  
-  name               = "\${var.customer_name}-waf-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.waf_sg[count.index].id]
-  subnets           = [aws_subnet.waf_public[count.index * 2].id, aws_subnet.waf_public[count.index * 2 + 1].id]
-  
-  enable_deletion_protection = false
-  
-  tags = {
-    Name     = "\${var.customer_name}-waf-alb-\${var.regions[count.index]}"
-    Customer = var.customer_name
-  }
-}
-
-# Target Group
-resource "aws_lb_target_group" "waf_tg" {
-  count = length(var.regions)
-  
-  name     = "\${var.customer_name}-waf-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.waf_vpc[count.index].id
-  
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    interval            = 30
-    matcher             = "200"
-    path                = "/health"
-    port                = "traffic-port"
-    protocol            = "HTTP"
-    timeout             = 5
-    unhealthy_threshold = 2
-  }
-  
-  tags = {
-    Name     = "\${var.customer_name}-waf-tg-\${var.regions[count.index]}"
-    Customer = var.customer_name
-  }
-}
-
-# ALB Listener
-resource "aws_lb_listener" "waf_listener" {
-  count = length(var.regions)
-  
-  load_balancer_arn = aws_lb.waf_alb[count.index].arn
-  port              = "80"
-  protocol          = "HTTP"
-  
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.waf_tg[count.index].arn
-  }
-}
-
-# Route 53 for DNS
+# Global load balancer
 resource "aws_route53_zone" "main" {
   name = var.domain
   
   tags = {
-    Name     = "\${var.customer_name}-zone"
-    Customer = var.customer_name
+    Customer  = var.customer_name
+    ManagedBy = "terraform"
   }
 }
 
-resource "aws_route53_record" "waf" {
-  count = length(var.regions)
-  
+${regions.map(region => `
+resource "aws_route53_record" "waf_${region.replace(/-/g, '_')}" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "\${var.regions[count.index]}.waf"
+  name    = "${region}.waf.\\${var.domain}"
   type    = "A"
+  ttl     = 300
+  records = [module.waf_${region.replace(/-/g, '_')}.public_ip]
+}`).join('\n\n')}
+
+# Health check and failover
+resource "aws_route53_health_check" "waf_health" {
+  for_each = toset(var.regions)
   
-  alias {
-    name                   = aws_lb.waf_alb[count.index].dns_name
-    zone_id                = aws_lb.waf_alb[count.index].zone_id
-    evaluate_target_health = true
+  fqdn                            = "\\${each.value}.waf.\\${var.domain}"
+  port                            = 443
+  type                            = "HTTPS"
+  resource_path                   = "/health"
+  failure_threshold               = 3
+  request_interval                = 30
+  
+  tags = {
+    Name      = "WAF Health Check - \\${each.value}"
+    Customer  = var.customer_name
+    Region    = each.value
   }
 }
 
 # Outputs
-output "load_balancer_dns" {
-  description = "DNS names of the load balancers"
-  value       = aws_lb.waf_alb[*].dns_name
+output "waf_endpoints" {
+  description = "WAF endpoint URLs"
+  value = {
+${regions.map(region => `    ${region} = "https://${region}.waf.\\${var.domain}"`).join('\n')}
+  }
 }
 
-output "name_servers" {
-  description = "Name servers for the domain"
-  value       = aws_route53_zone.main.name_servers
+output "management_dashboard" {
+  description = "Global management dashboard URL"
+  value = "https://dashboard.waf.\\${var.domain}"
+}
+
+output "api_endpoints" {
+  description = "API endpoints for each region"
+  value = {
+${regions.map(region => `    ${region} = module.waf_${region.replace(/-/g, '_')}.api_endpoint`).join('\n')}
+  }
 }`;
-
-  const userDataScript = `#!/bin/bash
-# User data script for ${customerName} WAF Edge Nodes
-# Generated: ${new Date().toISOString()}
-
-# Variables
-CUSTOMER_NAME="${customerName}"
-DOMAIN="${domain}"
-API_KEY="${apiKey}"
-CLOUD_ENDPOINT="${cloudEndpoint}"
-REGION="\${region}"
-
-# Update system
-yum update -y
-
-# Install dependencies
-yum install -y docker git curl wget htop
-
-# Start Docker
-systemctl start docker
-systemctl enable docker
-
-# Create WAF user
-useradd -m -s /bin/bash wafuser
-usermod -aG docker wafuser
-
-# Create directories
-mkdir -p /opt/waf/{config,logs,ssl}
-chown -R wafuser:wafuser /opt/waf
-
-# WAF Configuration
-cat > /opt/waf/config/waf.conf << EOF
-# WAF Edge Configuration for \${CUSTOMER_NAME}
-customer_name="\${CUSTOMER_NAME}"
-domain="\${DOMAIN}"
-api_key="\${API_KEY}"
-cloud_endpoint="\${CLOUD_ENDPOINT}"
-region="\${REGION}"
-mode="hybrid"
-
-# Edge-specific settings
-edge_cache_enabled=true
-edge_cache_ttl=300
-threat_intel_sync_interval=60
-local_rules_enabled=true
-cloud_fallback=true
-
-# Performance settings
-worker_processes=auto
-worker_connections=1024
-keepalive_timeout=65
-EOF
-
-# Docker Compose for Edge WAF
-cat > /opt/waf/docker-compose.yml << EOF
-version: '3.8'
-
-services:
-  waf-edge:
-    image: waf-edge:latest
-    container_name: waf-edge-\${REGION}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /opt/waf/config:/etc/waf/config:ro
-      - /opt/waf/logs:/var/log/waf
-      - /opt/waf/ssl:/etc/ssl:ro
-    environment:
-      - CUSTOMER_NAME=\${CUSTOMER_NAME}
-      - DOMAIN=\${DOMAIN}
-      - API_KEY=\${API_KEY}
-      - CLOUD_ENDPOINT=\${CLOUD_ENDPOINT}
-      - REGION=\${REGION}
-      - MODE=hybrid
-    restart: unless-stopped
-    networks:
-      - waf-network
-
-  threat-intel-sync:
-    image: threat-intel-sync:latest
-    container_name: threat-intel-sync-\${REGION}
-    volumes:
-      - /opt/waf/config:/etc/waf/config:ro
-    environment:
-      - API_KEY=\${API_KEY}
-      - CLOUD_ENDPOINT=\${CLOUD_ENDPOINT}
-      - SYNC_INTERVAL=60
-    restart: unless-stopped
-    networks:
-      - waf-network
-    depends_on:
-      - waf-edge
-
-  metrics-exporter:
-    image: waf-metrics-exporter:latest
-    container_name: metrics-exporter-\${REGION}
-    ports:
-      - "9100:9100"
-    volumes:
-      - /opt/waf/logs:/var/log/waf:ro
-    environment:
-      - REGION=\${REGION}
-      - CUSTOMER_NAME=\${CUSTOMER_NAME}
-    restart: unless-stopped
-    networks:
-      - waf-network
-
-networks:
-  waf-network:
-    driver: bridge
-EOF
-
-# Start WAF services
-cd /opt/waf
-docker-compose up -d
-
-# Configure log rotation
-cat > /etc/logrotate.d/waf << EOF
-/opt/waf/logs/*.log {
-    daily
-    rotate 30
-    compress
-    delaycompress
-    missingok
-    notifempty
-    create 644 wafuser wafuser
-    postrotate
-        docker-compose -f /opt/waf/docker-compose.yml restart waf-edge
-    endscript
-}
-EOF
-
-# Health check script
-cat > /opt/waf/health-check.sh << '#!/bin/bash'
-#!/bin/bash
-# Health check for WAF edge node
-
-HEALTH_URL="http://localhost/health"
-RESPONSE=\$(curl -s -o /dev/null -w "%{http_code}" \${HEALTH_URL})
-
-if [ "\$RESPONSE" = "200" ]; then
-    echo "WAF Edge Node: Healthy"
-    exit 0
-else
-    echo "WAF Edge Node: Unhealthy (HTTP \$RESPONSE)"
-    exit 1
-fi
-EOF
-
-chmod +x /opt/waf/health-check.sh
-
-# Install health check in cron
-echo "*/1 * * * * /opt/waf/health-check.sh >> /opt/waf/logs/health.log 2>&1" | crontab -u wafuser -
-
-# Signal completion
-/opt/aws/bin/cfn-signal -e $? --stack \${AWS::StackName} --resource AutoScalingGroup --region \${AWS::Region}`;
-
-  const ansiblePlaybook = `# Ansible Playbook for ${customerName} Hybrid Cloud Management
-# Generated: ${new Date().toISOString()}
----
-- name: Deploy WAF Hybrid Cloud Infrastructure
-  hosts: localhost
-  connection: local
-  gather_facts: false
-  
-  vars:
-    customer_name: "${customerName}"
-    domain: "${domain}"
-    api_key: "${apiKey}"
-    cloud_endpoint: "${cloudEndpoint}"
-    regions:
-      - us-east-1
-      - us-west-2
-      - eu-west-1
-    
-  tasks:
-    - name: Deploy Terraform infrastructure
-      terraform:
-        project_path: "./terraform"
-        state: present
-        variables:
-          customer_name: "{{ customer_name }}"
-          domain: "{{ domain }}"
-          api_key: "{{ api_key }}"
-          regions: "{{ regions }}"
-      register: terraform_output
-    
-    - name: Wait for instances to be ready
-      wait_for:
-        host: "{{ item }}"
-        port: 80
-        timeout: 300
-      loop: "{{ terraform_output.outputs.load_balancer_dns.value }}"
-    
-    - name: Configure DNS
-      route53:
-        state: present
-        zone: "{{ domain }}"
-        record: "waf.{{ domain }}"
-        type: A
-        value: "{{ terraform_output.outputs.load_balancer_dns.value[0] }}"
-        ttl: 300
-    
-    - name: Deploy monitoring
-      kubernetes.core.k8s:
-        name: waf-monitoring
-        api_version: v1
-        kind: Namespace
-        state: present
-    
-    - name: Configure alerting
-      uri:
-        url: "{{ cloud_endpoint }}/functions/v1/alert-manager"
-        method: POST
-        body_format: json
-        body:
-          customer: "{{ customer_name }}"
-          domain: "{{ domain }}"
-          endpoints: "{{ terraform_output.outputs.load_balancer_dns.value }}"
-          alert_rules:
-            - name: "WAF Edge Down"
-              condition: "up == 0"
-              severity: "critical"
-            - name: "High Traffic Volume"
-              condition: "rate(requests_total[5m]) > 1000"
-              severity: "warning"
-        headers:
-          Authorization: "Bearer {{ api_key }}"
-    
-    - name: Verify deployment
-      uri:
-        url: "http://{{ item }}/health"
-        method: GET
-      loop: "{{ terraform_output.outputs.load_balancer_dns.value }}"
-      register: health_checks
-    
-    - name: Report deployment status
-      debug:
-        msg: "WAF Hybrid Cloud deployment for {{ customer_name }} completed successfully"
-      when: health_checks.results | selectattr('status', 'equalto', 200) | list | length == regions | length`;
 
   return {
     terraform_main: terraformMain,
-    user_data_script: userDataScript,
-    ansible_playbook: ansiblePlaybook
-  };
-}`;
-
-const deploymentOrchestrator = `import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const { model, customerId, artifacts, config } = await req.json();
-
-    console.log('Orchestrating deployment for model:', model, 'customer:', customerId);
-
-    // Simulate deployment orchestration based on model
-    let deploymentResult = {};
-
-    switch (model) {
-      case 'reverse-proxy':
-        deploymentResult = await deployReverseProxy(artifacts, config);
-        break;
-      case 'kubernetes':
-        deploymentResult = await deployKubernetes(artifacts, config);
-        break;
-      case 'on-premise':
-        deploymentResult = await deployOnPremise(artifacts, config);
-        break;
-      case 'hybrid-cloud':
-        deploymentResult = await deployHybridCloud(artifacts, config);
-        break;
-      default:
-        throw new Error(\`Unsupported deployment model: \${model}\`);
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        deployment_id: \`deploy-\${Date.now()}\`,
-        model: model,
-        status: 'deployed',
-        endpoints: deploymentResult.endpoints,
-        monitoring: deploymentResult.monitoring,
-        message: \`\${model} deployment completed successfully\`
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-
-  } catch (error) {
-    console.error('Deployment orchestration error:', error);
-    
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-        details: 'Failed to orchestrate deployment'
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  }
-});
-
-async function deployReverseProxy(artifacts: any, config: any) {
-  // Simulate reverse proxy deployment
-  console.log('Deploying reverse proxy configuration...');
-  
-  return {
-    endpoints: [
-      \`http://\${config.domain}\`,
-      \`https://\${config.domain}\`
-    ],
-    monitoring: {
-      health_check: \`http://\${config.domain}/health\`,
-      metrics: \`http://\${config.domain}/metrics\`,
-      logs: '/var/log/nginx/access.log'
-    }
+    model: 'hybrid-cloud',
+    status: 'generated',
+    files: [
+      { name: 'main.tf', content: terraformMain }
+    ]
   };
 }
-
-async function deployKubernetes(artifacts: any, config: any) {
-  // Simulate Kubernetes deployment
-  console.log('Deploying to Kubernetes cluster...');
-  
-  return {
-    endpoints: [
-      \`http://\${config.domain}\`,
-      \`https://\${config.domain}\`
-    ],
-    monitoring: {
-      health_check: \`http://\${config.domain}/health\`,
-      prometheus: \`http://prometheus.\${config.domain}:9090\`,
-      grafana: \`http://grafana.\${config.domain}:3000\`
-    }
-  };
-}
-
-async function deployOnPremise(artifacts: any, config: any) {
-  // Simulate on-premise appliance deployment
-  console.log('Deploying on-premise appliance...');
-  
-  return {
-    endpoints: [
-      \`http://\${config.applianceIP}\`,
-      \`https://\${config.applianceIP}:\${config.managementPort}\`
-    ],
-    monitoring: {
-      health_check: \`http://\${config.applianceIP}/health\`,
-      management: \`https://\${config.applianceIP}:\${config.managementPort}\`,
-      snmp: \`\${config.applianceIP}:161\`
-    }
-  };
-}
-
-async function deployHybridCloud(artifacts: any, config: any) {
-  // Simulate hybrid cloud deployment
-  console.log('Deploying hybrid cloud infrastructure...');
-  
-  return {
-    endpoints: [
-      \`http://us-east-1.waf.\${config.domain}\`,
-      \`http://us-west-2.waf.\${config.domain}\`,
-      \`http://eu-west-1.waf.\${config.domain}\`
-    ],
-    monitoring: {
-      global_dashboard: \`https://dashboard.waf.\${config.domain}\`,
-      regional_health: \`https://health.waf.\${config.domain}\`,
-      threat_intel: \`https://intel.waf.\${config.domain}\`
-    }
-  };
-}`;
