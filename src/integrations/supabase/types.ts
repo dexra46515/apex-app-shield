@@ -415,35 +415,50 @@ export type Database = {
       }
       device_attestations: {
         Row: {
+          attestation_chain_valid: boolean | null
           attestation_token: string
           created_at: string
           device_fingerprint: string
+          hardware_verified: boolean | null
           id: string
           last_verified: string
+          pcr_values: Json | null
           platform_info: Json
           security_features: Json
+          tee_type: string | null
+          tpm_version: string | null
           trust_level: string
           verification_status: string
         }
         Insert: {
+          attestation_chain_valid?: boolean | null
           attestation_token: string
           created_at?: string
           device_fingerprint: string
+          hardware_verified?: boolean | null
           id?: string
           last_verified?: string
+          pcr_values?: Json | null
           platform_info: Json
           security_features: Json
+          tee_type?: string | null
+          tpm_version?: string | null
           trust_level?: string
           verification_status?: string
         }
         Update: {
+          attestation_chain_valid?: boolean | null
           attestation_token?: string
           created_at?: string
           device_fingerprint?: string
+          hardware_verified?: boolean | null
           id?: string
           last_verified?: string
+          pcr_values?: Json | null
           platform_info?: Json
           security_features?: Json
+          tee_type?: string | null
+          tpm_version?: string | null
           trust_level?: string
           verification_status?: string
         }
@@ -581,6 +596,72 @@ export type Database = {
           reason?: string
           region?: string | null
           restriction_type?: string
+        }
+        Relationships: []
+      }
+      hardware_signed_logs: {
+        Row: {
+          chain_hash: string
+          created_at: string
+          hardware_signature: string
+          id: string
+          integrity_verified: boolean
+          log_data: Json
+          previous_hash: string
+          tpm_pcr_values: Json | null
+        }
+        Insert: {
+          chain_hash: string
+          created_at?: string
+          hardware_signature: string
+          id?: string
+          integrity_verified?: boolean
+          log_data: Json
+          previous_hash: string
+          tpm_pcr_values?: Json | null
+        }
+        Update: {
+          chain_hash?: string
+          created_at?: string
+          hardware_signature?: string
+          id?: string
+          integrity_verified?: boolean
+          log_data?: Json
+          previous_hash?: string
+          tpm_pcr_values?: Json | null
+        }
+        Relationships: []
+      }
+      hardware_trust_metrics: {
+        Row: {
+          attestation_source: string | null
+          device_fingerprint: string | null
+          id: string
+          measurement_time: string
+          metadata: Json | null
+          metric_name: string
+          metric_value: number
+          trust_chain_depth: number | null
+        }
+        Insert: {
+          attestation_source?: string | null
+          device_fingerprint?: string | null
+          id?: string
+          measurement_time?: string
+          metadata?: Json | null
+          metric_name: string
+          metric_value: number
+          trust_chain_depth?: number | null
+        }
+        Update: {
+          attestation_source?: string | null
+          device_fingerprint?: string | null
+          id?: string
+          measurement_time?: string
+          metadata?: Json | null
+          metric_name?: string
+          metric_value?: number
+          trust_chain_depth?: number | null
         }
         Relationships: []
       }

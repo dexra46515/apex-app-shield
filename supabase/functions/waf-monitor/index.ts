@@ -434,15 +434,21 @@ async function logHoneypotInteraction(honeypotCheck: any, eventData: SecurityEve
   }
 }
 
-// Device attestation verification
+// Enhanced Device attestation with TPM/TEE verification
 async function checkDeviceAttestation(eventData: SecurityEventPayload, supabaseClient: any) {
-  const result = { trust_level: 'suspicious', verification_status: 'pending' };
+  const result = { 
+    trust_level: 'suspicious', 
+    verification_status: 'pending',
+    hardware_verified: false,
+    access_granted: false 
+  };
 
   if (!eventData.device_fingerprint) {
     return result;
   }
 
   try {
+    // Check existing attestation
     const { data: attestation } = await supabaseClient
       .from('device_attestations')
       .select('*')
@@ -452,6 +458,33 @@ async function checkDeviceAttestation(eventData: SecurityEventPayload, supabaseC
     if (attestation) {
       result.trust_level = attestation.trust_level;
       result.verification_status = attestation.verification_status;
+      result.hardware_verified = attestation.hardware_verified || false;
+      
+      // Grant access based on trust level and hardware verification
+      result.access_granted = attestation.trust_level === 'trusted' || 
+                             (attestation.trust_level === 'conditional' && attestation.hardware_verified);
+                             
+      // If sensitive API access, require hardware verification
+      if (eventData.request_path?.includes('/admin') || 
+          eventData.request_path?.includes('/sensitive')) {
+        result.access_granted = attestation.trust_level === 'trusted' && attestation.hardware_verified;
+      }
+      
+      // Create hardware-signed log for verification
+      if (result.access_granted) {
+        await supabaseClient.functions.invoke('hardware-trust-verifier', {
+          body: {
+            action: 'create_hardware_signed_log',
+            payload: {
+              event_type: 'device_access_granted',
+              device_fingerprint: eventData.device_fingerprint,
+              trust_level: attestation.trust_level,
+              request_path: eventData.request_path,
+              timestamp: new Date().toISOString()
+            }
+          }
+        });
+      }
     }
   } catch (error) {
     console.error('Error checking device attestation:', error);
