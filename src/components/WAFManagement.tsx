@@ -817,6 +817,16 @@ services:
                 </div>
               ) : (
                 <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">
+                      {customers.length} customer{customers.length !== 1 ? 's' : ''} deployed
+                    </p>
+                    <Button onClick={() => addNewCustomer()}>
+                      <Users className="w-4 h-4 mr-2" />
+                      Add New Customer
+                    </Button>
+                  </div>
+                  
                   {customers.map((customer) => (
                   <Card key={customer.id} className="bg-slate-800/50 border-slate-700">
                     <CardContent className="p-4">
