@@ -441,13 +441,14 @@ const AdvancedSecurityDashboard = () => {
       </div>
 
       <Tabs defaultValue="ai-analysis" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6 bg-slate-800 border-slate-700">
+        <TabsList className="grid w-full grid-cols-7 bg-slate-800 border-slate-700">
           <TabsTrigger value="ai-analysis" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">AI Analysis</TabsTrigger>
           <TabsTrigger value="honeypots" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">Honeypots</TabsTrigger>
           <TabsTrigger value="compliance" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">Compliance</TabsTrigger>
           <TabsTrigger value="adaptive" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">Adaptive Rules</TabsTrigger>
           <TabsTrigger value="geo-blocking" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">Geo Blocking</TabsTrigger>
-          <TabsTrigger value="siem" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">SIEM Integration</TabsTrigger>
+          <TabsTrigger value="builtin-siem" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">Built-in SIEM</TabsTrigger>
+          <TabsTrigger value="siem" className="data-[state=active]:bg-slate-700 text-slate-300 data-[state=active]:text-white">External SIEM</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ai-analysis" className="space-y-4">
@@ -661,15 +662,138 @@ const AdvancedSecurityDashboard = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="builtin-siem" className="space-y-4">
+          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Activity className="w-5 h-5 text-cyan-400" />
+                Built-in SIEM Platform
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Complete security information and event management - no external tools needed
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* SIEM Capabilities Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border-cyan-500/30">
+                    <CardContent className="p-4 text-center">
+                      <Activity className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-cyan-300">Real-time Monitoring</div>
+                      <div className="text-sm text-slate-400">Live event processing</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border-purple-500/30">
+                    <CardContent className="p-4 text-center">
+                      <Brain className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-purple-300">AI Analytics</div>
+                      <div className="text-sm text-slate-400">Machine learning insights</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-br from-green-900/20 to-emerald-900/20 border-green-500/30">
+                    <CardContent className="p-4 text-center">
+                      <Shield className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-green-300">Threat Correlation</div>
+                      <div className="text-sm text-slate-400">Intelligent pattern detection</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-br from-orange-900/20 to-red-900/20 border-orange-500/30">
+                    <CardContent className="p-4 text-center">
+                      <AlertTriangle className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-orange-300">Auto Alerting</div>
+                      <div className="text-sm text-slate-400">Smart notifications</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Feature Comparison */}
+                <div>
+                  <h4 className="text-lg font-semibold text-white mb-4">✅ What Our Built-in SIEM Provides</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>Real-time Security Event Processing</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>Interactive Analytics Dashboards</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>AI-Powered Anomaly Detection</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>Automated Compliance Reports</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>Threat Intelligence Integration</span>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>Alert Management & Correlation</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>Incident Response Automation</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>Advanced Threat Hunting Tools</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>Forensic Analysis Capabilities</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-green-400">
+                        <Badge className="bg-green-900/30 text-green-400 border-green-500/30">✓</Badge>
+                        <span>API for Custom Integrations</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Architecture Benefits */}
+                <Card className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600">
+                  <CardHeader>
+                    <CardTitle className="text-white text-lg">🚀 Why Built-in SIEM is Better</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="space-y-2">
+                        <div className="font-semibold text-cyan-300">💰 Cost Effective</div>
+                        <p className="text-slate-300">No need for expensive external SIEM licenses. Everything included in your WAF subscription.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="font-semibold text-purple-300">⚡ Faster Response</div>
+                        <p className="text-slate-300">Direct integration means zero latency between detection and response. Immediate automated actions.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="font-semibold text-green-300">🔧 Easier Setup</div>
+                        <p className="text-slate-300">Pre-configured for web security. No complex SIEM rules to write or maintain.</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="siem" className="space-y-4">
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Database className="w-5 h-5 text-indigo-400" />
-                SIEM Integration Control Panel
+                External SIEM Integration
               </CardTitle>
               <CardDescription className="text-slate-400">
-                Configure and manage Security Information and Event Management integrations
+                Enterprise integration with existing SIEM infrastructure (Splunk, Elastic, QRadar, etc.)
               </CardDescription>
             </CardHeader>
             <CardContent>
