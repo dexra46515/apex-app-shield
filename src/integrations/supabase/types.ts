@@ -128,6 +128,66 @@ export type Database = {
         }
         Relationships: []
       }
+      attack_ttp_patterns: {
+        Row: {
+          attack_pattern: Json
+          attack_timeline: Json
+          behavioral_signature: Json
+          confidence_score: number
+          created_at: string
+          data_exfiltration: Json | null
+          detected_tools: string[] | null
+          honeypot_interaction_id: string | null
+          id: string
+          lateral_movement: Json | null
+          mitre_tactic: string
+          mitre_technique: string
+          payload_analysis: Json
+          persistence_methods: Json | null
+          severity_level: string
+          technique_id: string
+          updated_at: string
+        }
+        Insert: {
+          attack_pattern: Json
+          attack_timeline: Json
+          behavioral_signature: Json
+          confidence_score?: number
+          created_at?: string
+          data_exfiltration?: Json | null
+          detected_tools?: string[] | null
+          honeypot_interaction_id?: string | null
+          id?: string
+          lateral_movement?: Json | null
+          mitre_tactic: string
+          mitre_technique: string
+          payload_analysis: Json
+          persistence_methods?: Json | null
+          severity_level?: string
+          technique_id: string
+          updated_at?: string
+        }
+        Update: {
+          attack_pattern?: Json
+          attack_timeline?: Json
+          behavioral_signature?: Json
+          confidence_score?: number
+          created_at?: string
+          data_exfiltration?: Json | null
+          detected_tools?: string[] | null
+          honeypot_interaction_id?: string | null
+          id?: string
+          lateral_movement?: Json | null
+          mitre_tactic?: string
+          mitre_technique?: string
+          payload_analysis?: Json
+          persistence_methods?: Json | null
+          severity_level?: string
+          technique_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bot_signatures: {
         Row: {
           bot_type: string
@@ -302,6 +362,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ddos_predictions: {
+        Row: {
+          actual_volume: number | null
+          confidence_level: number
+          early_indicators: Json
+          id: string
+          is_active: boolean
+          mitigation_recommendations: Json
+          predicted_at: string
+          predicted_attack_type: string
+          predicted_volume: number
+          prediction_accuracy: number | null
+          prediction_window: string
+          risk_factors: Json
+          source_patterns: Json
+          target_time: string
+        }
+        Insert: {
+          actual_volume?: number | null
+          confidence_level?: number
+          early_indicators: Json
+          id?: string
+          is_active?: boolean
+          mitigation_recommendations: Json
+          predicted_at?: string
+          predicted_attack_type: string
+          predicted_volume: number
+          prediction_accuracy?: number | null
+          prediction_window: string
+          risk_factors: Json
+          source_patterns: Json
+          target_time: string
+        }
+        Update: {
+          actual_volume?: number | null
+          confidence_level?: number
+          early_indicators?: Json
+          id?: string
+          is_active?: boolean
+          mitigation_recommendations?: Json
+          predicted_at?: string
+          predicted_attack_type?: string
+          predicted_volume?: number
+          prediction_accuracy?: number | null
+          prediction_window?: string
+          risk_factors?: Json
+          source_patterns?: Json
+          target_time?: string
+        }
+        Relationships: []
+      }
       device_attestations: {
         Row: {
           attestation_token: string
@@ -335,6 +446,105 @@ export type Database = {
           security_features?: Json
           trust_level?: string
           verification_status?: string
+        }
+        Relationships: []
+      }
+      dynamic_honeypots: {
+        Row: {
+          api_schema: Json
+          auto_generated: boolean
+          created_at: string
+          effectiveness_score: number
+          endpoint_pattern: string
+          honeypot_id: string
+          id: string
+          interaction_count: number
+          interaction_rules: Json
+          is_active: boolean
+          last_interaction: string | null
+          learning_source: string | null
+          response_templates: Json
+          ttl: string | null
+        }
+        Insert: {
+          api_schema: Json
+          auto_generated?: boolean
+          created_at?: string
+          effectiveness_score?: number
+          endpoint_pattern: string
+          honeypot_id: string
+          id?: string
+          interaction_count?: number
+          interaction_rules: Json
+          is_active?: boolean
+          last_interaction?: string | null
+          learning_source?: string | null
+          response_templates: Json
+          ttl?: string | null
+        }
+        Update: {
+          api_schema?: Json
+          auto_generated?: boolean
+          created_at?: string
+          effectiveness_score?: number
+          endpoint_pattern?: string
+          honeypot_id?: string
+          id?: string
+          interaction_count?: number
+          interaction_rules?: Json
+          is_active?: boolean
+          last_interaction?: string | null
+          learning_source?: string | null
+          response_templates?: Json
+          ttl?: string | null
+        }
+        Relationships: []
+      }
+      encrypted_flow_patterns: {
+        Row: {
+          anomaly_score: number
+          confidence_level: number
+          destination_ip: unknown | null
+          detected_at: string
+          flow_direction: string
+          flow_signature: string
+          id: string
+          metadata: Json
+          packet_sizes: Json
+          pattern_type: string
+          protocol: string
+          source_ip: unknown
+          timing_patterns: Json
+        }
+        Insert: {
+          anomaly_score?: number
+          confidence_level?: number
+          destination_ip?: unknown | null
+          detected_at?: string
+          flow_direction: string
+          flow_signature: string
+          id?: string
+          metadata?: Json
+          packet_sizes: Json
+          pattern_type: string
+          protocol: string
+          source_ip: unknown
+          timing_patterns: Json
+        }
+        Update: {
+          anomaly_score?: number
+          confidence_level?: number
+          destination_ip?: unknown | null
+          detected_at?: string
+          flow_direction?: string
+          flow_signature?: string
+          id?: string
+          metadata?: Json
+          packet_sizes?: Json
+          pattern_type?: string
+          protocol?: string
+          source_ip?: unknown
+          timing_patterns?: Json
         }
         Relationships: []
       }
@@ -529,6 +739,57 @@ export type Database = {
           path_pattern?: string | null
           source_criteria?: string
           window_size?: number
+        }
+        Relationships: []
+      }
+      rule_deployments: {
+        Row: {
+          auto_promote: boolean
+          created_by: string | null
+          current_status: string
+          deployment_phase: string
+          end_time: string | null
+          false_positive_rate: number
+          id: string
+          metadata: Json
+          performance_impact: number
+          promotion_criteria: Json
+          rule_id: string
+          start_time: string
+          success_rate: number
+          traffic_percentage: number
+        }
+        Insert: {
+          auto_promote?: boolean
+          created_by?: string | null
+          current_status?: string
+          deployment_phase?: string
+          end_time?: string | null
+          false_positive_rate?: number
+          id?: string
+          metadata?: Json
+          performance_impact?: number
+          promotion_criteria?: Json
+          rule_id: string
+          start_time?: string
+          success_rate?: number
+          traffic_percentage?: number
+        }
+        Update: {
+          auto_promote?: boolean
+          created_by?: string | null
+          current_status?: string
+          deployment_phase?: string
+          end_time?: string | null
+          false_positive_rate?: number
+          id?: string
+          metadata?: Json
+          performance_impact?: number
+          promotion_criteria?: Json
+          rule_id?: string
+          start_time?: string
+          success_rate?: number
+          traffic_percentage?: number
         }
         Relationships: []
       }
@@ -818,6 +1079,96 @@ export type Database = {
         }
         Relationships: []
       }
+      tls_fingerprints: {
+        Row: {
+          cipher_suites: Json
+          extensions: Json
+          first_seen: string
+          id: string
+          is_malicious: boolean
+          ja3_hash: string
+          ja3_string: string
+          last_seen: string
+          metadata: Json
+          request_count: number
+          source_ip: unknown
+          threat_score: number
+          tls_version: string
+        }
+        Insert: {
+          cipher_suites: Json
+          extensions: Json
+          first_seen?: string
+          id?: string
+          is_malicious?: boolean
+          ja3_hash: string
+          ja3_string: string
+          last_seen?: string
+          metadata?: Json
+          request_count?: number
+          source_ip: unknown
+          threat_score?: number
+          tls_version: string
+        }
+        Update: {
+          cipher_suites?: Json
+          extensions?: Json
+          first_seen?: string
+          id?: string
+          is_malicious?: boolean
+          ja3_hash?: string
+          ja3_string?: string
+          last_seen?: string
+          metadata?: Json
+          request_count?: number
+          source_ip?: unknown
+          threat_score?: number
+          tls_version?: string
+        }
+        Relationships: []
+      }
+      traffic_forecasts: {
+        Row: {
+          anomaly_probability: number
+          confidence_interval: Json
+          created_at: string
+          feature_importance: Json
+          forecast_time: string
+          id: string
+          model_version: string
+          predicted_bandwidth: number
+          predicted_requests_per_second: number
+          recommended_scaling: Json
+          seasonal_factors: Json
+        }
+        Insert: {
+          anomaly_probability?: number
+          confidence_interval: Json
+          created_at?: string
+          feature_importance: Json
+          forecast_time: string
+          id?: string
+          model_version: string
+          predicted_bandwidth: number
+          predicted_requests_per_second: number
+          recommended_scaling: Json
+          seasonal_factors: Json
+        }
+        Update: {
+          anomaly_probability?: number
+          confidence_interval?: Json
+          created_at?: string
+          feature_importance?: Json
+          forecast_time?: string
+          id?: string
+          model_version?: string
+          predicted_bandwidth?: number
+          predicted_requests_per_second?: number
+          recommended_scaling?: Json
+          seasonal_factors?: Json
+        }
+        Relationships: []
+      }
       user_access_patterns: {
         Row: {
           access_method: string
@@ -1041,7 +1392,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      evaluate_rule_promotion: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
