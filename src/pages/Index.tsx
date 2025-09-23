@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import SecurityDashboard from '@/components/SecurityDashboard';
 import AdvancedSecurityDashboard from '@/components/AdvancedSecurityDashboard';
+import WAFManagement from '@/components/WAFManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Index = () => {
@@ -30,9 +31,10 @@ const Index = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
               Enterprise WAF Security Platform
             </h1>
-            <TabsList className="grid grid-cols-2 w-[400px] bg-slate-800 border-slate-700">
+            <TabsList className="grid grid-cols-3 w-[600px] bg-slate-800 border-slate-700">
               <TabsTrigger value="standard" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Standard Dashboard</TabsTrigger>
               <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced Features</TabsTrigger>
+              <TabsTrigger value="waf-management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">WAF Management</TabsTrigger>
             </TabsList>
           </div>
 
@@ -42,6 +44,10 @@ const Index = () => {
 
           <TabsContent value="advanced">
             <AdvancedSecurityDashboard />
+          </TabsContent>
+
+          <TabsContent value="waf-management">
+            <WAFManagement />
           </TabsContent>
         </Tabs>
       </div>
