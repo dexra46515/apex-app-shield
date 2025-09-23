@@ -803,7 +803,7 @@ resource "aws_route53_zone" "main" {
 ${regions.map(region => `
 resource "aws_route53_record" "waf_${region.replace(/-/g, '_')}" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "${region}.waf.\\${var.domain}"
+  name    = "${region}.waf.\${var.domain}"
   type    = "A"
   ttl     = 300
   records = [module.waf_${region.replace(/-/g, '_')}.public_ip]
@@ -813,7 +813,7 @@ resource "aws_route53_record" "waf_${region.replace(/-/g, '_')}" {
 resource "aws_route53_health_check" "waf_health" {
   for_each = toset(var.regions)
   
-  fqdn                            = "\\${each.value}.waf.\\${var.domain}"
+  fqdn                            = "\${each.value}.waf.\${var.domain}"
   port                            = 443
   type                            = "HTTPS"
   resource_path                   = "/health"
@@ -821,7 +821,7 @@ resource "aws_route53_health_check" "waf_health" {
   request_interval                = 30
   
   tags = {
-    Name      = "WAF Health Check - \\${each.value}"
+    Name      = "WAF Health Check - \${each.value}"
     Customer  = var.customer_name
     Region    = each.value
   }
@@ -831,13 +831,13 @@ resource "aws_route53_health_check" "waf_health" {
 output "waf_endpoints" {
   description = "WAF endpoint URLs"
   value = {
-${regions.map(region => `    ${region} = "https://${region}.waf.\\${var.domain}"`).join('\n')}
+${regions.map(region => `    ${region} = "https://${region}.waf.\${var.domain}"`).join('\n')}
   }
 }
 
 output "management_dashboard" {
   description = "Global management dashboard URL"
-  value = "https://dashboard.waf.\\${var.domain}"
+  value = "https://dashboard.waf.\${var.domain}"
 }
 
 output "api_endpoints" {
