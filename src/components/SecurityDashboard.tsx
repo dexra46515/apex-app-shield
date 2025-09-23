@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import TrafficSimulator from './TrafficSimulator';
+import SettingsModal from './SettingsModal';
 
 interface SecurityStats {
   totalEvents: number;
@@ -64,6 +65,7 @@ const SecurityDashboard = () => {
   const [recentEvents, setRecentEvents] = useState<SecurityEvent[]>([]);
   const [activeAlerts, setActiveAlerts] = useState<SecurityAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     loadSecurityData();
@@ -253,7 +255,7 @@ const SecurityDashboard = () => {
             <Bell className="h-4 w-4 mr-2" />
             Alerts ({stats.criticalAlerts})
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
             <Settings className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={signOut}>
@@ -418,6 +420,8 @@ const SecurityDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 };
