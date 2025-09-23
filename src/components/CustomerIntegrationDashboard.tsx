@@ -101,15 +101,31 @@ export default function CustomerIntegrationDashboard() {
   };
 
   const detectHardwareCapabilities = async () => {
-    // Simulate hardware capability detection
-    const capabilities = [
-      { feature: "TPM 2.0", supported: false, details: "Not detected - Install TPM module" },
-      { feature: "Secure Boot", supported: true, details: "UEFI Secure Boot enabled" },
-      { feature: "Intel TXT", supported: false, details: "Not available on this platform" },
-      { feature: "ARM TrustZone", supported: false, details: "x86 platform detected" },
-      { feature: "Hardware RNG", supported: true, details: "Intel RdRand available" }
-    ];
-    setHardwareCapabilities(capabilities);
+    try {
+      const { data, error } = await supabase.functions.invoke('real-hardware-detector', {
+        body: {
+          action: 'detect_hardware_capabilities',
+          user_agent: navigator.userAgent,
+          platform_info: {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            vendor: navigator.vendor
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.hardware_capabilities) {
+        setHardwareCapabilities(data.hardware_capabilities);
+      }
+    } catch (error) {
+      console.error('Hardware detection failed:', error);
+      // Fallback to basic detection
+      setHardwareCapabilities([
+        { feature: "Hardware Detection", supported: false, details: "Real detection requires local agent installation" }
+      ]);
+    }
   };
 
   const registerCustomer = async () => {
@@ -152,28 +168,32 @@ export default function CustomerIntegrationDashboard() {
     ));
 
     try {
-      const startTime = Date.now();
-      
-      // Simulate connection test
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-      
-      const responseTime = Date.now() - startTime;
-      const success = Math.random() > 0.3; // 70% success rate for demo
+      const { data, error } = await supabase.functions.invoke('customer-integration-manager', {
+        body: {
+          action: 'test_connectivity',
+          domain: domain,
+          endpoints: [endpoint]
+        }
+      });
+
+      if (error) throw error;
+
+      const result = data.connectivity_results?.[0];
       
       setConnectionTests(prev => prev.map(test => 
         test.endpoint === endpoint 
           ? { 
               ...test, 
-              status: success ? 'success' as const : 'failed' as const,
-              responseTime: success ? responseTime : undefined,
-              error: success ? undefined : 'Connection timeout'
+              status: result?.status === 'success' ? 'success' as const : 'failed' as const,
+              responseTime: result?.responseTime,
+              error: result?.error
             }
           : test
       ));
     } catch (error) {
       setConnectionTests(prev => prev.map(test => 
         test.endpoint === endpoint 
-          ? { ...test, status: 'failed' as const, error: 'Network error' }
+          ? { ...test, status: 'failed' as const, error: (error as any).message }
           : test
       ));
     }
@@ -200,10 +220,16 @@ export default function CustomerIntegrationDashboard() {
     if (!deployment) return;
 
     try {
+      // Generate a real API key with proper format
+      const timestamp = Date.now().toString(36);
+      const randomPart = Math.random().toString(36).substring(2, 15);
+      const checksum = Math.random().toString(36).substring(2, 6);
+      const realApiKey = `pak_live_${timestamp}_${randomPart}_${checksum}`;
+
       const { data, error } = await supabase
         .from('customer_deployments')
         .update({ 
-          api_key: `pak_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`,
+          api_key: realApiKey,
           status: 'active'
         })
         .eq('id', deployment.id)
