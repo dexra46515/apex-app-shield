@@ -22,6 +22,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import ComplianceReports from './ComplianceReports';
 
 interface AdvancedSecurityStats {
   aiAnomalies: number;
@@ -353,7 +354,7 @@ const AdvancedSecurityDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {[
                   { name: 'PCI DSS', score: 92, status: 'compliant' },
                   { name: 'GDPR', score: 88, status: 'compliant' },
@@ -385,6 +386,8 @@ const AdvancedSecurityDashboard = () => {
                   </Card>
                 ))}
               </div>
+              
+              <ComplianceReports />
             </CardContent>
           </Card>
         </TabsContent>
