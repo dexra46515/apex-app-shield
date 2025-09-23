@@ -47,6 +47,7 @@ const AdvancedSecurityDashboard = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [reportsRefresh, setReportsRefresh] = useState(0);
 
   const loadAdvancedStats = async () => {
     try {
@@ -175,6 +176,7 @@ const AdvancedSecurityDashboard = () => {
         title: "Compliance Report Generated",
         description: `${reportType.toUpperCase()} report created successfully`,
       });
+      setReportsRefresh((v) => v + 1);
     } catch (error) {
       console.error('Error generating compliance report:', error);
       toast({
@@ -387,7 +389,7 @@ const AdvancedSecurityDashboard = () => {
                 ))}
               </div>
               
-              <ComplianceReports />
+              <ComplianceReports refreshToken={reportsRefresh} />
             </CardContent>
           </Card>
         </TabsContent>

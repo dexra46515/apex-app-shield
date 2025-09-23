@@ -32,7 +32,7 @@ interface ComplianceReport {
   generated_by: string | null;
 }
 
-const ComplianceReports = () => {
+const ComplianceReports = ({ refreshToken = 0 }: { refreshToken?: number }) => {
   const { toast } = useToast();
   const [reports, setReports] = useState<ComplianceReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ const ComplianceReports = () => {
 
   useEffect(() => {
     loadReports();
-  }, []);
+  }, [refreshToken]);
 
   const loadReports = async () => {
     try {
