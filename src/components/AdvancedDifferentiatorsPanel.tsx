@@ -16,7 +16,7 @@ interface AdvancedStats {
   rule_deployments: number;
 }
 
-const AdvancedDifferentiatorsPanel = () => {
+export const AdvancedDifferentiatorsPanel = () => {
   const [stats, setStats] = useState<AdvancedStats>({
     tls_fingerprints: 0,
     encrypted_flows: 0,
@@ -254,5 +254,3 @@ const AdvancedDifferentiatorsPanel = () => {
     </div>
   );
 };
-
-export default AdvancedDifferentiatorsPanel;
