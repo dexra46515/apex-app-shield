@@ -38,10 +38,19 @@ interface CustomerData {
   name: string;
   email: string;
   domain: string;
-  deploymentType: 'docker' | 'kubernetes' | 'nginx' | 'apache';
+  additionalDomains: string[];
+  deploymentType: 'docker' | 'kubernetes' | 'reverse-proxy' | 'on-premise' | 'hybrid-cloud';
   contactPhone?: string;
   industry?: string;
   expectedTraffic?: string;
+  advancedFeatures: {
+    selfHealing: boolean;
+    quantumSafe: boolean;
+    aiPrediction: boolean;
+    zkProofs: boolean;
+    clientSideProtection: boolean;
+    graphqlSecurity: boolean;
+  };
 }
 
 interface OnboardingStep {
@@ -73,10 +82,19 @@ const EnhancedCustomerOnboarding = () => {
     name: '',
     email: '',
     domain: '',
+    additionalDomains: [],
     deploymentType: 'docker',
     contactPhone: '',
     industry: '',
-    expectedTraffic: 'medium'
+    expectedTraffic: 'medium',
+    advancedFeatures: {
+      selfHealing: true,
+      quantumSafe: false,
+      aiPrediction: true,
+      zkProofs: false,
+      clientSideProtection: true,
+      graphqlSecurity: false
+    }
   });
   const [apiKey, setApiKey] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -540,7 +558,7 @@ spec:
     switch (customerData.deploymentType) {
       case 'docker': return dockerCode;
       case 'kubernetes': return kubernetesCode;  
-      case 'nginx': return nginxConfig;
+      case 'reverse-proxy': return nginxConfig;
       default: return dockerCode;
     }
   };
@@ -556,7 +574,9 @@ spec:
     const config = generateEnhancedDeploymentCode();
     const filename = customerData.deploymentType === 'docker' ? 'docker-compose.yml' :
                     customerData.deploymentType === 'kubernetes' ? 'waf-k8s-deployment.yaml' :
-                    'waf-nginx.conf';
+                    customerData.deploymentType === 'reverse-proxy' ? 'waf-nginx.conf' :
+                    customerData.deploymentType === 'on-premise' ? 'appliance-config.yml' :
+                    'hybrid-cloud-terraform.tf';
                     
     const blob = new Blob([config], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
@@ -895,7 +915,7 @@ spec:
                     <Label htmlFor="deploymentType" className="text-white">Deployment Method</Label>
                     <Select
                       value={customerData.deploymentType}
-                      onValueChange={(value: 'docker' | 'kubernetes' | 'nginx' | 'apache') => 
+                      onValueChange={(value: 'docker' | 'kubernetes' | 'reverse-proxy' | 'on-premise' | 'hybrid-cloud') => 
                         setCustomerData(prev => ({ ...prev, deploymentType: value }))
                       }
                     >
@@ -905,8 +925,9 @@ spec:
                       <SelectContent className="bg-slate-700 border-slate-600">
                         <SelectItem value="docker" className="text-white">🐳 Docker Compose</SelectItem>
                         <SelectItem value="kubernetes" className="text-white">☸️ Kubernetes</SelectItem>
-                        <SelectItem value="nginx" className="text-white">🔧 Nginx Integration</SelectItem>
-                        <SelectItem value="apache" className="text-white">🌐 Apache Integration</SelectItem>
+                        <SelectItem value="reverse-proxy" className="text-white">🔧 Reverse Proxy (Nginx/Envoy)</SelectItem>
+                        <SelectItem value="on-premise" className="text-white">🏢 On-Premise Appliance</SelectItem>
+                        <SelectItem value="hybrid-cloud" className="text-white">☁️ Hybrid Cloud</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1053,8 +1074,9 @@ spec:
                   <CardDescription className="text-slate-400">
                     {customerData.deploymentType === 'docker' && '🐳 Docker Compose with monitoring'}
                     {customerData.deploymentType === 'kubernetes' && '☸️ Kubernetes with auto-scaling'}
-                    {customerData.deploymentType === 'nginx' && '🔧 Nginx with Lua WAF integration'}
-                    {customerData.deploymentType === 'apache' && '🌐 Apache with mod_security'}
+                    {customerData.deploymentType === 'reverse-proxy' && '🔧 Reverse Proxy with WAF integration'}
+                    {customerData.deploymentType === 'on-premise' && '🏢 On-premise appliance deployment'}
+                    {customerData.deploymentType === 'hybrid-cloud' && '☁️ Hybrid cloud infrastructure'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
