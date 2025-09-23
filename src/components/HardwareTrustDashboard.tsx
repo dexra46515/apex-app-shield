@@ -28,6 +28,19 @@ interface HardwareTrustMetrics {
   last_updated: string;
 }
 
+interface HardwareTrustConfig {
+  tpm_required: boolean;
+  tee_required: boolean;
+  min_trust_level: 'trusted' | 'conditional' | 'suspicious';
+  require_secure_boot: boolean;
+  require_measured_boot: boolean;
+  allowed_tee_types: string[];
+  pcr_validation_enabled: boolean;
+  hardware_logging_required: boolean;
+  attestation_timeout_ms: number;
+  auto_revoke_on_failure: boolean;
+}
+
 interface DeviceAttestation {
   device_fingerprint: string;
   trust_level: string;
@@ -42,11 +55,24 @@ const HardwareTrustDashboard = () => {
   const { toast } = useToast();
   const [metrics, setMetrics] = useState<HardwareTrustMetrics | null>(null);
   const [attestations, setAttestations] = useState<DeviceAttestation[]>([]);
+  const [config, setConfig] = useState<HardwareTrustConfig>({
+    tpm_required: false,
+    tee_required: false,
+    min_trust_level: 'conditional',
+    require_secure_boot: true,
+    require_measured_boot: true,
+    allowed_tee_types: ['Intel_SGX', 'ARM_TrustZone', 'Apple_SecureEnclave'],
+    pcr_validation_enabled: true,
+    hardware_logging_required: true,
+    attestation_timeout_ms: 5000,
+    auto_revoke_on_failure: false
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadTrustMetrics();
     loadDeviceAttestations();
+    loadHardwareTrustConfig();
   }, []);
 
   const loadTrustMetrics = async () => {
@@ -61,6 +87,53 @@ const HardwareTrustDashboard = () => {
       }
     } catch (error) {
       console.error('Error loading trust metrics:', error);
+    }
+  };
+
+  const loadHardwareTrustConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('waf_config')
+        .select('config_value')
+        .eq('config_key', 'hardware_trust_settings')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      if (data) {
+        setConfig({ ...config, ...(data.config_value as unknown as HardwareTrustConfig) });
+      }
+    } catch (error) {
+      console.error('Error loading hardware trust config:', error);
+    }
+  };
+
+  const saveHardwareTrustConfig = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('waf_config')
+        .upsert({
+          config_key: 'hardware_trust_settings',
+          config_value: config as any,
+          category: 'hardware_trust',
+          description: 'Hardware trust and attestation configuration'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Configuration Saved",
+        description: "Hardware trust settings updated successfully"
+      });
+    } catch (error) {
+      console.error('Error saving hardware trust config:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save hardware trust configuration",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -256,6 +329,9 @@ const HardwareTrustDashboard = () => {
           <TabsTrigger value="attestation" className="data-[state=active]:bg-slate-700">
             Device Attestation
           </TabsTrigger>
+          <TabsTrigger value="configuration" className="data-[state=active]:bg-slate-700">
+            Configuration
+          </TabsTrigger>
           <TabsTrigger value="logs" className="data-[state=active]:bg-slate-700">
             Hardware-Signed Logs
           </TabsTrigger>
@@ -330,6 +406,173 @@ const HardwareTrustDashboard = () => {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="configuration" className="space-y-4">
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Settings className="w-5 h-5 text-orange-400" />
+                Hardware Trust Configuration
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Configure TPM/TEE requirements and trust policies for your organization
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* TPM/TEE Requirements */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-white">Hardware Requirements</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-white">Require TPM 2.0</label>
+                      <p className="text-xs text-slate-400">Block access without TPM chip</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={config.tpm_required}
+                        onChange={(e) => setConfig({...config, tmp_required: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-white">Require TEE</label>
+                      <p className="text-xs text-slate-400">Require Trusted Execution Environment</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={config.tee_required}
+                        onChange={(e) => setConfig({...config, tee_required: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-white">Secure Boot Required</label>
+                      <p className="text-xs text-slate-400">Verify secure boot is enabled</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={config.require_secure_boot}
+                        onChange={(e) => setConfig({...config, require_secure_boot: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-white">Hardware Logging</label>
+                      <p className="text-xs text-slate-400">Cryptographically sign all logs</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={config.hardware_logging_required}
+                        onChange={(e) => setConfig({...config, hardware_logging_required: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Trust Level Configuration */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-white">Trust Level Policy</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-white">Minimum Trust Level</label>
+                    <select
+                      value={config.min_trust_level}
+                      onChange={(e) => setConfig({...config, min_trust_level: e.target.value as any})}
+                      className="w-full mt-1 bg-slate-700 border border-slate-600 text-white rounded-md px-3 py-2"
+                    >
+                      <option value="suspicious">Suspicious (Allow with warnings)</option>
+                      <option value="conditional">Conditional (Basic verification)</option>
+                      <option value="trusted">Trusted (Full hardware verification)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-white">Attestation Timeout (ms)</label>
+                    <input
+                      type="number"
+                      value={config.attestation_timeout_ms}
+                      onChange={(e) => setConfig({...config, attestation_timeout_ms: parseInt(e.target.value)})}
+                      className="w-full mt-1 bg-slate-700 border border-slate-600 text-white rounded-md px-3 py-2"
+                      min="1000"
+                      max="30000"
+                      step="1000"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* TEE Type Configuration */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-white">Allowed TEE Types</h4>
+                <div className="space-y-2">
+                  {['Intel_SGX', 'ARM_TrustZone', 'Apple_SecureEnclave', 'AMD_PSP'].map((teeType) => (
+                    <div key={teeType} className="flex items-center justify-between p-2 bg-slate-700/50 rounded">
+                      <span className="text-sm text-white">{teeType.replace('_', ' ')}</span>
+                      <input
+                        type="checkbox"
+                        checked={config.allowed_tee_types.includes(teeType)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setConfig({...config, allowed_tee_types: [...config.allowed_tee_types, teeType]});
+                          } else {
+                            setConfig({...config, allowed_tee_types: config.allowed_tee_types.filter(t => t !== teeType)});
+                          }
+                        }}
+                        className="rounded"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Save Configuration */}
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={saveHardwareTrustConfig}
+                  disabled={loading}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {loading ? 'Saving...' : 'Save Configuration'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={loadHardwareTrustConfig}
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  Reset to Saved
+                </Button>
+              </div>
+
+              <Alert className="bg-orange-900/20 border-orange-500/30">
+                <AlertTriangle className="w-4 h-4" />
+                <AlertDescription className="text-orange-300">
+                  <strong>Important:</strong> Changes to hardware trust requirements will affect all future device attestations. 
+                  Existing devices may need to re-authenticate if requirements are tightened.
+                </AlertDescription>
+              </Alert>
             </CardContent>
           </Card>
         </TabsContent>
