@@ -49,6 +49,24 @@ verify_jwt = false
 [functions.waf-engine]
 verify_jwt = false
 
+[functions.self-healing-manager]
+verify_jwt = false
+
+[functions.zk-proof-generator]
+verify_jwt = false
+
+[functions.predictive-attack-analyzer]
+verify_jwt = false
+
+[functions.client-side-protector]
+verify_jwt = false
+
+[functions.graphql-security-analyzer]
+verify_jwt = false
+
+[functions.deployment-orchestrator]
+verify_jwt = false
+
 [db]
 port = 54322
 
