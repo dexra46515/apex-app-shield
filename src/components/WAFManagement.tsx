@@ -128,37 +128,62 @@ const WAFManagement = () => {
         <div className="text-center py-8 text-muted-foreground">
           <FileText className="w-12 h-12 mx-auto mb-2" />
           <p>No security rules found</p>
-          <p className="text-sm">Add your first security rule to get started</p>
+          <p className="text-sm">Click 'Refresh Rules' to load security rules</p>
         </div>
       ) : (
         <div className="grid gap-4">
           {securityRules.map((rule) => (
-            <Card key={rule.id} className="bg-slate-800/50 border-slate-700">
+            <Card key={rule.id} className="bg-card/50 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge className={rule.enabled ? 'bg-green-600' : 'bg-gray-600'}>
+                      <Badge variant={rule.enabled ? 'default' : 'secondary'}>
                         {rule.enabled ? 'Enabled' : 'Disabled'}
                       </Badge>
-                      <Badge variant="outline">{rule.severity}</Badge>
-                      <span className="font-medium text-white">{rule.name}</span>
+                      <Badge variant="outline" className={
+                        rule.severity === 'high' ? 'border-destructive text-destructive' :
+                        rule.severity === 'medium' ? 'border-orange-500 text-orange-500' :
+                        'border-muted-foreground text-muted-foreground'
+                      }>
+                        {rule.severity}
+                      </Badge>
+                      <span className="font-medium">{rule.name}</span>
                     </div>
-                    <p className="text-sm text-slate-400 mb-2">{rule.description}</p>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
-                      <span>Category: {rule.category}</span>
-                      <span>Priority: {rule.priority}</span>
-                      <span>Type: {rule.rule_type}</span>
+                    <p className="text-sm text-muted-foreground mb-2">{rule.description}</p>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                      <span>Category: <span className="text-foreground">{rule.category}</span></span>
+                      <span>Priority: <span className="text-foreground">{rule.priority}</span></span>
+                      <span>Type: <span className="text-foreground">{rule.rule_type}</span></span>
                     </div>
+                    
+                    {/* Show rule conditions preview */}
+                    {rule.conditions && (
+                      <div className="mt-3 p-2 bg-muted/50 rounded-sm">
+                        <p className="text-xs font-medium mb-1">Conditions:</p>
+                        <div className="text-xs text-muted-foreground">
+                          {rule.conditions.patterns && (
+                            <div>Patterns: {rule.conditions.patterns.slice(0, 2).join(', ')}{rule.conditions.patterns.length > 2 ? '...' : ''}</div>
+                          )}
+                          {rule.conditions.fields && (
+                            <div>Fields: {rule.conditions.fields.join(', ')}</div>
+                          )}
+                          {rule.conditions.source && (
+                            <div>Source: {rule.conditions.source}</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline">
+                  <div className="flex gap-2 ml-4">
+                    <Button size="sm" variant="outline" title="View Rule Details">
                       <Settings className="w-4 h-4" />
                     </Button>
                     <Button 
                       size="sm" 
                       variant={rule.enabled ? "destructive" : "default"}
                       onClick={() => toggleRule(rule.id, !rule.enabled)}
+                      title={rule.enabled ? 'Disable Rule' : 'Enable Rule'}
                     >
                       {rule.enabled ? 'Disable' : 'Enable'}
                     </Button>
