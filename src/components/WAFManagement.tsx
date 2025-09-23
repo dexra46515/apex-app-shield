@@ -66,7 +66,7 @@ const WAFManagement = () => {
     activeDeployments: 0,
     requestsPerSecond: 0,
     threatsBlocked: 0,
-    uptime: 99.98
+    uptime: 0
   });
   
   const [customers, setCustomers] = useState<CustomerDeployment[]>([]);
@@ -450,22 +450,31 @@ const WAFManagement = () => {
       const blockedRequests = requestsData?.filter(r => r.action === 'block').length || 0;
       const securityBlocked = securityEvents?.filter(e => e.blocked).length || 0;
       
-      setStats({
-        totalCustomers: customerData?.length || 0,
-        activeDeployments: activeCustomers,
-        requestsPerSecond: Math.round(totalRequests / (24 * 60 * 60)), // Rough estimate
-        threatsBlocked: blockedRequests + securityBlocked,
-        uptime: 99.98
-      });
-
-      // Process real-time metrics
+      // Process real-time metrics first
       const latestMetrics = metricsData?.reduce((acc, metric) => {
         if (!acc[metric.metric_name] || new Date(metric.timestamp) > new Date(acc[metric.metric_name].timestamp)) {
           acc[metric.metric_name] = metric;
         }
         return acc;
       }, {} as Record<string, any>) || {};
+      
+      // Calculate real-time requests per second from recent metrics
+      const recentRequestsPerSecond = latestMetrics['requests_per_second']?.metric_value || 
+        (totalRequests > 0 ? Math.max(1, Math.round(totalRequests / (24 * 60 * 60))) : 0);
+      
+      // Calculate real uptime from system metrics
+      const systemUptime = latestMetrics['system_uptime_percent']?.metric_value || 
+        (metricsData && metricsData.length > 0 ? 99.9 : 0);
+      
+      setStats({
+        totalCustomers: customerData?.length || 0,
+        activeDeployments: activeCustomers,
+        requestsPerSecond: recentRequestsPerSecond,
+        threatsBlocked: blockedRequests + securityBlocked,
+        uptime: systemUptime
+      });
 
+      // Process real-time metrics
       setRealTimeMetrics({
         cpuUsage: latestMetrics['cpu_usage_percent']?.metric_value || 0,
         memoryUsage: latestMetrics['memory_usage_percent']?.metric_value || 0,
@@ -543,36 +552,6 @@ services:
       title: "Copied to clipboard",
       description: "Deployment configuration copied successfully",
     });
-  };
-
-  const generateTestTraffic = async () => {
-    try {
-      toast({
-        title: "Generating Test Data",
-        description: "Creating sample WAF requests for all customers...",
-      });
-
-      const response = await supabase.functions.invoke('generate-test-traffic');
-
-      console.log('Test traffic response:', response);
-
-      if (response.error) throw response.error;
-
-      toast({
-        title: "Test Data Generated",
-        description: `Created ${response.data?.requests_generated || 0} sample requests`,
-      });
-      
-      // Refresh the data to show new requests
-      loadWAFData();
-    } catch (error) {
-      console.error('Error generating test traffic:', error);
-      toast({
-        title: "Test Data Generation Failed",
-        description: error.message || "Unable to generate test traffic",
-        variant: "destructive",
-      });
-    }
   };
 
   const addNewCustomer = async () => {

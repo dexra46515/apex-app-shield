@@ -118,10 +118,11 @@ const CustomerSIEMAnalytics = () => {
       ? ((customer.threats_blocked_today / customer.requests_today) * 100)
       : 0;
 
-    const customerEvents = securityEvents.filter(event => 
-      // In a real scenario, you'd filter by customer_id or domain
-      event.source_ip // For demo, we'll show all events
-    );
+    const customerEvents = securityEvents.filter(event => {
+      // Filter events for the specific customer based on their domain or customer_id
+      // For now, showing all events as customer filtering would require additional mapping
+      return event.source_ip; // Return events with valid source IPs
+    });
 
     const criticalEvents = customerEvents.filter(e => e.severity === 'critical').length;
     const highEvents = customerEvents.filter(e => e.severity === 'high').length;

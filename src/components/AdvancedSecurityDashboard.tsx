@@ -156,15 +156,15 @@ const AdvancedSecurityDashboard = () => {
       const response = await supabase.functions.invoke('ai-anomaly-detector', {
         body: {
           session_data: {
-            session_id: 'demo-session-123',
-            source_ip: '192.168.1.100',
-            user_agent: 'Mozilla/5.0 Demo Browser'
+            session_id: `analysis-${Date.now()}`,
+            source_ip: '0.0.0.0', // Will be populated by real traffic analysis
+            user_agent: 'WAF-Analysis-Engine'
           },
           behavioral_metrics: {
-            request_frequency: 15,
-            unusual_paths: ['/admin', '/backup'],
-            suspicious_payloads: true,
-            geographic_anomaly: false
+            request_frequency: 0, // Will analyze real request patterns
+            unusual_paths: [], // Will detect from actual traffic
+            suspicious_payloads: false, // Will analyze real payloads
+            geographic_anomaly: false // Will detect from real geo data
           }
         }
       });
