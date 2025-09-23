@@ -28,6 +28,15 @@ verify_jwt = false
 [functions.simulate-traffic]
 verify_jwt = false
 
+[functions.ai-anomaly-detector]
+verify_jwt = false
+
+[functions.compliance-reporter]
+verify_jwt = false
+
+[functions.siem-integrator]
+verify_jwt = false
+
 [db]
 port = 54322
 

@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      adaptive_rules: {
+        Row: {
+          action_parameters: Json | null
+          action_type: string
+          auto_generated: boolean
+          condition_pattern: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          last_triggered: string | null
+          learning_confidence: number | null
+          name: string
+          trigger_count: number
+        }
+        Insert: {
+          action_parameters?: Json | null
+          action_type: string
+          auto_generated?: boolean
+          condition_pattern: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_triggered?: string | null
+          learning_confidence?: number | null
+          name: string
+          trigger_count?: number
+        }
+        Update: {
+          action_parameters?: Json | null
+          action_type?: string
+          auto_generated?: boolean
+          condition_pattern?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_triggered?: string | null
+          learning_confidence?: number | null
+          name?: string
+          trigger_count?: number
+        }
+        Relationships: []
+      }
+      ai_anomaly_detections: {
+        Row: {
+          ai_analysis_result: Json
+          anomaly_score: number
+          behavior_pattern: Json
+          created_at: string
+          id: string
+          mitigation_action: string
+          session_id: string
+          source_ip: unknown
+          threat_level: string
+        }
+        Insert: {
+          ai_analysis_result: Json
+          anomaly_score: number
+          behavior_pattern: Json
+          created_at?: string
+          id?: string
+          mitigation_action: string
+          session_id: string
+          source_ip: unknown
+          threat_level: string
+        }
+        Update: {
+          ai_analysis_result?: Json
+          anomaly_score?: number
+          behavior_pattern?: Json
+          created_at?: string
+          id?: string
+          mitigation_action?: string
+          session_id?: string
+          source_ip?: unknown
+          threat_level?: string
+        }
+        Relationships: []
+      }
       api_schemas: {
         Row: {
           created_at: string
@@ -80,6 +158,239 @@ export type Database = {
           name?: string
           pattern?: string
           signature_type?: string
+        }
+        Relationships: []
+      }
+      compliance_reports: {
+        Row: {
+          compliance_score: number
+          created_at: string
+          findings: Json
+          generated_by: string | null
+          id: string
+          recommendations: Json
+          report_data: Json
+          report_period_end: string
+          report_period_start: string
+          report_type: string
+        }
+        Insert: {
+          compliance_score: number
+          created_at?: string
+          findings: Json
+          generated_by?: string | null
+          id?: string
+          recommendations: Json
+          report_data: Json
+          report_period_end: string
+          report_period_start: string
+          report_type: string
+        }
+        Update: {
+          compliance_score?: number
+          created_at?: string
+          findings?: Json
+          generated_by?: string | null
+          id?: string
+          recommendations?: Json
+          report_data?: Json
+          report_period_end?: string
+          report_period_start?: string
+          report_type?: string
+        }
+        Relationships: []
+      }
+      custom_security_rules: {
+        Row: {
+          actions: Json
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          last_matched: string | null
+          match_count: number
+          name: string
+          priority: number
+          rule_category: string
+          updated_at: string
+        }
+        Insert: {
+          actions: Json
+          conditions: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_matched?: string | null
+          match_count?: number
+          name: string
+          priority?: number
+          rule_category: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_matched?: string | null
+          match_count?: number
+          name?: string
+          priority?: number
+          rule_category?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      device_attestations: {
+        Row: {
+          attestation_token: string
+          created_at: string
+          device_fingerprint: string
+          id: string
+          last_verified: string
+          platform_info: Json
+          security_features: Json
+          trust_level: string
+          verification_status: string
+        }
+        Insert: {
+          attestation_token: string
+          created_at?: string
+          device_fingerprint: string
+          id?: string
+          last_verified?: string
+          platform_info: Json
+          security_features: Json
+          trust_level?: string
+          verification_status?: string
+        }
+        Update: {
+          attestation_token?: string
+          created_at?: string
+          device_fingerprint?: string
+          id?: string
+          last_verified?: string
+          platform_info?: Json
+          security_features?: Json
+          trust_level?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
+      geo_restrictions: {
+        Row: {
+          asn: number | null
+          country_code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          organization: string | null
+          reason: string
+          region: string | null
+          restriction_type: string
+        }
+        Insert: {
+          asn?: number | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization?: string | null
+          reason: string
+          region?: string | null
+          restriction_type: string
+        }
+        Update: {
+          asn?: number | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization?: string | null
+          reason?: string
+          region?: string | null
+          restriction_type?: string
+        }
+        Relationships: []
+      }
+      honeypot_interactions: {
+        Row: {
+          created_at: string
+          honeypot_id: string
+          id: string
+          request_body: string | null
+          request_headers: Json | null
+          request_method: string
+          source_ip: unknown
+          threat_score: number
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          honeypot_id: string
+          id?: string
+          request_body?: string | null
+          request_headers?: Json | null
+          request_method: string
+          source_ip: unknown
+          threat_score?: number
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          honeypot_id?: string
+          id?: string
+          request_body?: string | null
+          request_headers?: Json | null
+          request_method?: string
+          source_ip?: unknown
+          threat_score?: number
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "honeypot_interactions_honeypot_id_fkey"
+            columns: ["honeypot_id"]
+            isOneToOne: false
+            referencedRelation: "honeypots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      honeypots: {
+        Row: {
+          created_at: string
+          decoy_response: Json
+          endpoint_path: string
+          id: string
+          is_active: boolean
+          name: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          decoy_response: Json
+          endpoint_path: string
+          id?: string
+          is_active?: boolean
+          name: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          decoy_response?: Json
+          endpoint_path?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          type?: string
         }
         Relationships: []
       }
@@ -166,6 +477,47 @@ export type Database = {
           window_size?: number
         }
         Relationships: []
+      }
+      schema_violations: {
+        Row: {
+          api_schema_id: string
+          created_at: string
+          id: string
+          request_data: Json | null
+          severity: string
+          source_ip: unknown
+          violation_details: Json
+          violation_type: string
+        }
+        Insert: {
+          api_schema_id: string
+          created_at?: string
+          id?: string
+          request_data?: Json | null
+          severity: string
+          source_ip: unknown
+          violation_details: Json
+          violation_type: string
+        }
+        Update: {
+          api_schema_id?: string
+          created_at?: string
+          id?: string
+          request_data?: Json | null
+          severity?: string
+          source_ip?: unknown
+          violation_details?: Json
+          violation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schema_violations_api_schema_id_fkey"
+            columns: ["api_schema_id"]
+            isOneToOne: false
+            referencedRelation: "api_schemas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_alerts: {
         Row: {
@@ -334,6 +686,42 @@ export type Database = {
         }
         Relationships: []
       }
+      siem_events: {
+        Row: {
+          correlation_id: string | null
+          created_at: string
+          event_data: Json
+          event_source: string
+          event_type: string
+          export_timestamp: string | null
+          exported_to_siem: boolean
+          id: string
+          severity: string
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string
+          event_data: Json
+          event_source: string
+          event_type: string
+          export_timestamp?: string | null
+          exported_to_siem?: boolean
+          id?: string
+          severity: string
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string
+          event_data?: Json
+          event_source?: string
+          event_type?: string
+          export_timestamp?: string | null
+          exported_to_siem?: boolean
+          id?: string
+          severity?: string
+        }
+        Relationships: []
+      }
       threat_intelligence: {
         Row: {
           active: boolean | null
@@ -373,6 +761,45 @@ export type Database = {
           ip_address?: unknown | null
           source?: string
           threat_type?: string
+        }
+        Relationships: []
+      }
+      user_access_patterns: {
+        Row: {
+          access_method: string
+          authorization_valid: boolean
+          created_at: string
+          id: string
+          ownership_verified: boolean
+          resource_id: string
+          resource_type: string
+          risk_score: number
+          session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          access_method: string
+          authorization_valid: boolean
+          created_at?: string
+          id?: string
+          ownership_verified: boolean
+          resource_id: string
+          resource_type: string
+          risk_score?: number
+          session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          access_method?: string
+          authorization_valid?: boolean
+          created_at?: string
+          id?: string
+          ownership_verified?: boolean
+          resource_id?: string
+          resource_type?: string
+          risk_score?: number
+          session_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
