@@ -92,20 +92,15 @@ export default function CustomerIntegrationDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        console.log('No authenticated user found');
         setLoading(false);
         return;
       }
-
-      console.log('Loading deployment for user:', user.email);
 
       const { data, error } = await supabase
         .from('customer_deployments')
         .select('*')
         .eq('customer_email', user.email)
         .maybeSingle();
-      
-      console.log('Query result:', { data, error });
       
       if (error) {
         console.error('Error loading deployment:', error);
