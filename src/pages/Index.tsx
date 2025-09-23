@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import SecurityDashboard from '@/components/SecurityDashboard';
-import { AdvancedDifferentiatorsPanel } from '@/components/AdvancedDifferentiatorsPanel';
+import AdvancedDifferentiatorsPanel from '@/components/AdvancedDifferentiatorsPanel';
 import AdvancedSecurityDashboard from '@/components/AdvancedSecurityDashboard';
 import WAFManagement from '@/components/WAFManagement';
 import CustomerOnboarding from '@/components/CustomerOnboarding';
