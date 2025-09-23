@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import SecurityDashboard from '@/components/SecurityDashboard';
-import AdvancedDifferentiatorsPanel from '@/components/AdvancedDifferentiatorsPanel';
+import AdvancedFeaturesPanel from '@/components/AdvancedFeaturesPanel';
 import AdvancedSecurityDashboard from '@/components/AdvancedSecurityDashboard';
 import WAFManagement from '@/components/WAFManagement';
 import CustomerOnboarding from '@/components/CustomerOnboarding';
@@ -51,12 +51,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="advanced">
-            <div className="space-y-6">
-              <AdvancedSecurityDashboard />
-              <AdvancedDifferentiatorsPanel />
-              <HardwareTrustDashboard />
-              <WAFManagement />
-            </div>
+            <AdvancedFeaturesPanel />
           </TabsContent>
 
           <TabsContent value="management">
