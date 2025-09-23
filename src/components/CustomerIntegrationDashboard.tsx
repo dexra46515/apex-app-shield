@@ -292,28 +292,28 @@ export default function CustomerIntegrationDashboard() {
           <div className="space-y-4">
             <Progress value={getIntegrationProgress()} className="w-full" />
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className={`p-3 rounded-lg border ${integrationStep >= 1 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+              <div className={`p-4 rounded-lg border-2 ${integrationStep >= 1 ? 'bg-green-900/50 border-green-500 text-green-100' : 'bg-slate-800 border-slate-600 text-slate-300'}`}>
                 <div className="flex items-center">
-                  {integrationStep >= 1 ? <CheckCircle className="w-5 h-5 text-green-600 mr-2" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-300 mr-2" />}
-                  <span className="font-medium">Register</span>
+                  {integrationStep >= 1 ? <CheckCircle className="w-5 h-5 text-green-400 mr-3" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-400 mr-3" />}
+                  <span className="font-medium text-lg">Register</span>
                 </div>
               </div>
-              <div className={`p-3 rounded-lg border ${integrationStep >= 2 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+              <div className={`p-4 rounded-lg border-2 ${integrationStep >= 2 ? 'bg-green-900/50 border-green-500 text-green-100' : 'bg-slate-800 border-slate-600 text-slate-300'}`}>
                 <div className="flex items-center">
-                  {integrationStep >= 2 ? <CheckCircle className="w-5 h-5 text-green-600 mr-2" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-300 mr-2" />}
-                  <span className="font-medium">Configure</span>
+                  {integrationStep >= 2 ? <CheckCircle className="w-5 h-5 text-green-400 mr-3" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-400 mr-3" />}
+                  <span className="font-medium text-lg">Configure</span>
                 </div>
               </div>
-              <div className={`p-3 rounded-lg border ${integrationStep >= 3 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+              <div className={`p-4 rounded-lg border-2 ${integrationStep >= 3 ? 'bg-green-900/50 border-green-500 text-green-100' : 'bg-slate-800 border-slate-600 text-slate-300'}`}>
                 <div className="flex items-center">
-                  {integrationStep >= 3 ? <CheckCircle className="w-5 h-5 text-green-600 mr-2" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-300 mr-2" />}
-                  <span className="font-medium">Test</span>
+                  {integrationStep >= 3 ? <CheckCircle className="w-5 h-5 text-green-400 mr-3" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-400 mr-3" />}
+                  <span className="font-medium text-lg">Test</span>
                 </div>
               </div>
-              <div className={`p-3 rounded-lg border ${integrationStep >= 4 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+              <div className={`p-4 rounded-lg border-2 ${integrationStep >= 4 ? 'bg-green-900/50 border-green-500 text-green-100' : 'bg-slate-800 border-slate-600 text-slate-300'}`}>
                 <div className="flex items-center">
-                  {integrationStep >= 4 ? <CheckCircle className="w-5 h-5 text-green-600 mr-2" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-300 mr-2" />}
-                  <span className="font-medium">Deploy</span>
+                  {integrationStep >= 4 ? <CheckCircle className="w-5 h-5 text-green-400 mr-3" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-400 mr-3" />}
+                  <span className="font-medium text-lg">Deploy</span>
                 </div>
               </div>
             </div>
@@ -322,24 +322,24 @@ export default function CustomerIntegrationDashboard() {
       </Card>
 
       <Tabs defaultValue={deployment ? "dashboard" : "setup"} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="setup">Setup</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="hardware">Hardware</TabsTrigger>
-          <TabsTrigger value="testing">Testing</TabsTrigger>
-          <TabsTrigger value="integration">Integration</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 bg-slate-800 border border-slate-600">
+          <TabsTrigger value="setup" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Setup</TabsTrigger>
+          <TabsTrigger value="dashboard" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Dashboard</TabsTrigger>
+          <TabsTrigger value="hardware" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Hardware</TabsTrigger>
+          <TabsTrigger value="testing" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Testing</TabsTrigger>
+          <TabsTrigger value="integration" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Integration</TabsTrigger>
         </TabsList>
 
         {/* Setup Tab */}
         <TabsContent value="setup" className="space-y-6">
           {!deployment ? (
-            <Card>
+            <Card className="bg-slate-800 border-slate-600">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Globe className="w-5 h-5 mr-2 text-blue-600" />
+                <CardTitle className="flex items-center text-slate-100">
+                  <Globe className="w-5 h-5 mr-2 text-blue-400" />
                   Register Your Deployment
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-slate-400">
                   Register your infrastructure to begin hardware trust integration
                 </CardDescription>
               </CardHeader>
