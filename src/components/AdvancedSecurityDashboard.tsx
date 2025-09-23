@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -54,6 +57,13 @@ const AdvancedSecurityDashboard = () => {
   const [reportsRefresh, setReportsRefresh] = useState(0);
   const [showAIReports, setShowAIReports] = useState(false);
   const [aiReports, setAiReports] = useState<any[]>([]);
+  const [siemStatus, setSiemStatus] = useState<any>(null);
+  const [siemConfig, setSiemConfig] = useState({
+    type: 'splunk',
+    endpoint: '',
+    apiKey: '',
+    enabled: false
+  });
 
   const loadAdvancedStats = async () => {
     try {
@@ -229,7 +239,143 @@ const AdvancedSecurityDashboard = () => {
 
   useEffect(() => {
     loadAdvancedStats();
+    loadSiemStatus();
   }, []);
+
+  const loadSiemStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('siem-integrator', {
+        method: 'GET'
+      });
+
+      if (error) throw error;
+
+      setSiemStatus(data);
+      console.log('SIEM Status loaded:', data);
+    } catch (error) {
+      console.error('Error loading SIEM status:', error);
+      // Set default status if error
+      setSiemStatus({
+        total_events: 0,
+        exported_events: 0,
+        export_rate: 0,
+        configured: false
+      });
+    }
+  };
+
+  const configureSiem = async () => {
+    if (!siemConfig.endpoint || !siemConfig.apiKey) {
+      toast({
+        title: "Configuration Error",
+        description: "Please fill in SIEM endpoint and API key",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Configuring SIEM",
+        description: "Setting up SIEM integration...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('siem-integrator', {
+        body: {
+          action: 'configure_integration',
+          config: {
+            type: siemConfig.type,
+            endpoint: siemConfig.endpoint,
+            api_key: siemConfig.apiKey,
+            enabled: true
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "SIEM Configured",
+        description: `${siemConfig.type.toUpperCase()} integration configured successfully`,
+      });
+
+      loadSiemStatus(); // Refresh status
+    } catch (error) {
+      console.error('Error configuring SIEM:', error);
+      toast({
+        title: "Configuration Failed",
+        description: error.message || "Failed to configure SIEM integration",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const testSiemConnection = async () => {
+    try {
+      toast({
+        title: "Testing Connection",
+        description: "Testing SIEM integration connection...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('siem-integrator', {
+        body: {
+          action: 'test_connection',
+          config: {
+            type: siemConfig.type,
+            endpoint: siemConfig.endpoint,
+            api_key: siemConfig.apiKey
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Connection Test",
+        description: data.success ? "SIEM connection successful!" : "SIEM connection failed",
+        variant: data.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      console.error('Error testing SIEM connection:', error);
+      toast({
+        title: "Test Failed",
+        description: error.message || "Failed to test SIEM connection",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const exportEventsToSiem = async () => {
+    try {
+      toast({
+        title: "Exporting Events",
+        description: "Exporting security events to SIEM...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('siem-integrator', {
+        body: {
+          action: 'export_events',
+          batch_size: 100
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Export Complete",
+        description: `Exported ${data.exported_count || 0} events to SIEM`,
+      });
+
+      loadSiemStatus(); // Refresh status
+    } catch (error) {
+      console.error('Error exporting to SIEM:', error);
+      toast({
+        title: "Export Failed",
+        description: error.message || "Failed to export events to SIEM",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading advanced security features...</div>;
@@ -520,36 +666,147 @@ const AdvancedSecurityDashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Database className="w-5 h-5 text-indigo-400" />
-                SIEM Integration
+                SIEM Integration Control Panel
               </CardTitle>
               <CardDescription className="text-slate-400">
-                Enterprise security information and event management integration
+                Configure and manage Security Information and Event Management integrations
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { name: 'Splunk', status: 'available', color: 'green' },
-                    { name: 'Elastic', status: 'available', color: 'green' },
-                    { name: 'QRadar', status: 'available', color: 'green' },
-                    { name: 'Sentinel', status: 'available', color: 'green' },
-                  ].map((siem, index) => (
-                    <Card key={index} className="bg-slate-700/50 border-indigo-500/30 backdrop-blur-sm">
-                      <CardContent className="p-4 text-center">
-                        <div className="font-medium text-indigo-200">{siem.name}</div>
-                        <Badge 
-                          variant="outline" 
-                          className="bg-green-900/30 text-green-400 border-green-500/30 mt-1"
-                        >
-                          {siem.status}
-                        </Badge>
-                      </CardContent>
-                    </Card>
-                  ))}
+              <div className="space-y-6">
+                {/* SIEM Status Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="bg-slate-700/50 border-indigo-500/30">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-indigo-300">{siemStatus?.total_events || 0}</div>
+                      <div className="text-sm text-slate-400">Total Events</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-slate-700/50 border-green-500/30">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-300">{siemStatus?.exported_events || 0}</div>
+                      <div className="text-sm text-slate-400">Exported</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-slate-700/50 border-blue-500/30">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-blue-300">{siemStatus?.export_rate?.toFixed(1) || 0}%</div>
+                      <div className="text-sm text-slate-400">Export Rate</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-slate-700/50 border-purple-500/30">
+                    <CardContent className="p-4 text-center">
+                      <Badge 
+                        variant="outline"
+                        className={siemStatus?.configured ? 'bg-green-900/30 text-green-400 border-green-500/30' : 'bg-red-900/30 text-red-400 border-red-500/30'}
+                      >
+                        {siemStatus?.configured ? 'CONFIGURED' : 'NOT CONFIGURED'}
+                      </Badge>
+                      <div className="text-sm text-slate-400 mt-1">Status</div>
+                    </CardContent>
+                  </Card>
                 </div>
-                <div className="text-sm text-slate-400">
-                  Events exported: {stats.siemEvents} | Integration ready for all major SIEM platforms
+
+                {/* SIEM Configuration */}
+                <Card className="bg-slate-700/30 border-slate-600">
+                  <CardHeader>
+                    <CardTitle className="text-white text-lg">SIEM Configuration</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-slate-300">SIEM Platform</Label>
+                        <Select 
+                          value={siemConfig.type} 
+                          onValueChange={(value) => setSiemConfig(prev => ({ ...prev, type: value }))}
+                        >
+                          <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-700 border-slate-600">
+                            <SelectItem value="splunk">Splunk</SelectItem>
+                            <SelectItem value="elastic">Elastic SIEM</SelectItem>
+                            <SelectItem value="qradar">IBM QRadar</SelectItem>
+                            <SelectItem value="sentinel">Microsoft Sentinel</SelectItem>
+                            <SelectItem value="arcsight">ArcSight</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-slate-300">SIEM Endpoint</Label>
+                        <Input
+                          placeholder="https://your-siem.example.com"
+                          value={siemConfig.endpoint}
+                          onChange={(e) => setSiemConfig(prev => ({ ...prev, endpoint: e.target.value }))}
+                          className="bg-slate-700 border-slate-600 text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">API Key / Token</Label>
+                      <Input
+                        type="password"
+                        placeholder="Enter SIEM API key or authentication token"
+                        value={siemConfig.apiKey}
+                        onChange={(e) => setSiemConfig(prev => ({ ...prev, apiKey: e.target.value }))}
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={configureSiem}
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                      >
+                        <Database className="w-4 h-4 mr-2" />
+                        Configure SIEM
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={testSiemConnection}
+                        className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                      >
+                        <Activity className="w-4 h-4 mr-2" />
+                        Test Connection
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={exportEventsToSiem}
+                        className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                      >
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Export Events
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Supported SIEM Platforms */}
+                <div>
+                  <h4 className="text-lg font-semibold text-white mb-4">Supported Platforms</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {[
+                      { name: 'Splunk', status: 'Enterprise Ready', color: 'green' },
+                      { name: 'Elastic', status: 'Enterprise Ready', color: 'green' },
+                      { name: 'QRadar', status: 'Enterprise Ready', color: 'green' },
+                      { name: 'Sentinel', status: 'Enterprise Ready', color: 'green' },
+                      { name: 'ArcSight', status: 'Enterprise Ready', color: 'green' },
+                    ].map((siem, index) => (
+                      <Card key={index} className="bg-slate-700/50 border-indigo-500/30 backdrop-blur-sm">
+                        <CardContent className="p-4 text-center">
+                          <div className="font-medium text-indigo-200 mb-2">{siem.name}</div>
+                          <Badge 
+                            variant="outline" 
+                            className="bg-green-900/30 text-green-400 border-green-500/30 text-xs"
+                          >
+                            {siem.status}
+                          </Badge>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardContent>
