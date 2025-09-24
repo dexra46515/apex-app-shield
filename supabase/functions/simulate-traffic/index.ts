@@ -135,7 +135,7 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
       if (result.isAttack) {
         console.log(`⚠️ Creating security event for attack: ${result.url}`);
         securityEvents.push({
-          event_type: 'attack_simulation',
+          event_type: 'alert',
           severity: 'high',
           source_ip: '127.0.0.1',
           request_method: result.method,
