@@ -178,6 +178,10 @@ serve(async (req) => {
 
       const blockedCount = results.filter(r => r.blocked).length;
       
+      console.log('📍 CHECKPOINT: About to start security processing');
+      console.log('📊 Results array length:', results.length);
+      console.log('📊 Target URL:', targetUrl);
+      
       // Process security events BEFORE returning response
       console.log('🔄 Starting security event processing...');
       console.log(`📊 Processing ${results.length} results for ${targetUrl}`);
