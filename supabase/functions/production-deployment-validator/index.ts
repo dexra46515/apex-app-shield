@@ -116,9 +116,10 @@ async function validateProductionDeployment(deployment: any) {
 }
 
 async function validateDomain(domain: string) {
-  console.log(`Making REAL HTTP request to domain: ${domain}`)
+  console.log(`=== REAL HTTP REQUEST TO: ${domain} ===`)
   
   try {
+    const startTime = Date.now()
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
     
@@ -132,10 +133,21 @@ async function validateDomain(domain: string) {
     });
     
     clearTimeout(timeoutId);
+    const responseTime = Date.now() - startTime
     
-    console.log(`Domain ${domain} responded with status: ${response.status}`)
+    console.log(`✅ REAL RESPONSE from ${domain}:`)
+    console.log(`   Status: ${response.status} ${response.statusText}`)
+    console.log(`   Response Time: ${responseTime}ms`)
+    console.log(`   Final URL: ${response.url}`)
     
-    // Real security header checks
+    // REAL security header analysis
+    const allHeaders: Record<string, string> = {}
+    response.headers.forEach((value, key) => {
+      allHeaders[key.toLowerCase()] = value
+    })
+    
+    console.log(`   All Headers from ${domain}:`, JSON.stringify(allHeaders, null, 2))
+    
     const securityHeaders = {
       'strict-transport-security': response.headers.get('strict-transport-security'),
       'x-frame-options': response.headers.get('x-frame-options'),
@@ -144,7 +156,9 @@ async function validateDomain(domain: string) {
       'x-xss-protection': response.headers.get('x-xss-protection')
     }
     
-    // Calculate security score based on actual headers
+    console.log(`   Security Headers from ${domain}:`, JSON.stringify(securityHeaders, null, 2))
+    
+    // Calculate REAL security score based on actual headers
     let securityScore = 0
     if (securityHeaders['strict-transport-security']) securityScore += 20
     if (securityHeaders['x-frame-options']) securityScore += 20
@@ -154,7 +168,13 @@ async function validateDomain(domain: string) {
     
     const finalScore = response.ok ? Math.max(50, securityScore) : 0
     
-    console.log(`Domain ${domain} security score: ${finalScore}`)
+    console.log(`🔍 SECURITY ANALYSIS for ${domain}:`)
+    console.log(`   HSTS Header: ${securityHeaders['strict-transport-security'] ? '✅ Present' : '❌ Missing'}`)
+    console.log(`   X-Frame-Options: ${securityHeaders['x-frame-options'] ? '✅ Present' : '❌ Missing'}`)
+    console.log(`   X-Content-Type-Options: ${securityHeaders['x-content-type-options'] ? '✅ Present' : '❌ Missing'}`)
+    console.log(`   CSP Header: ${securityHeaders['content-security-policy'] ? '✅ Present' : '❌ Missing'}`)
+    console.log(`   X-XSS-Protection: ${securityHeaders['x-xss-protection'] ? '✅ Present' : '❌ Missing'}`)
+    console.log(`   FINAL SCORE: ${finalScore}/100`)
     
     return {
       score: finalScore,
@@ -162,16 +182,19 @@ async function validateDomain(domain: string) {
         dns_resolves: true,
         ssl_valid: response.url.startsWith('https://'),
         response_code: response.status,
-        response_time_ms: Date.now() - Date.now(), // Placeholder
+        response_time_ms: responseTime,
         security_headers: securityHeaders,
+        all_headers: allHeaders,
         security_score: securityScore,
         server_header: response.headers.get('server'),
         content_length: response.headers.get('content-length'),
-        last_modified: response.headers.get('last-modified')
+        last_modified: response.headers.get('last-modified'),
+        tested_url: `https://${domain}`,
+        final_url: response.url
       }
     }
   } catch (error) {
-    console.log(`Domain ${domain} failed with error: ${error}`)
+    console.log(`❌ REAL ERROR from ${domain}: ${error instanceof Error ? error.message : 'Unknown error'}`)
     return {
       score: 0,
       checks: {
@@ -179,7 +202,8 @@ async function validateDomain(domain: string) {
         ssl_valid: false,
         response_code: null,
         error: error instanceof Error ? error.message : 'Connection failed',
-        domain_tested: domain
+        domain_tested: domain,
+        tested_url: `https://${domain}`
       }
     }
   }
