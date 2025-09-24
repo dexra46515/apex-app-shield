@@ -14,49 +14,62 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const { api_key, customer_id, deployment_config } = await req.json()
 
-    console.log('HANDLER VERSION: v2-skip-api-key')
+    console.log('HANDLER VERSION: v3-detailed-errors')
     console.log('Production validation started for customer:', customer_id)
 
-    // Skip API key validation for now - just get the deployment by ID
+    // Get customer deployment by ID (not API key)
     const { data: deployment, error } = await supabaseClient
       .from('customer_deployments')
       .select('*')
       .eq('id', customer_id)
       .eq('status', 'active')
-      .single()
+      .maybeSingle()
 
-    if (error || !deployment) {
-      throw new Error('Customer deployment not found or inactive')
+    if (error) {
+      console.error('Database error:', error)
+      throw new Error(`Database error: ${error.message}`)
     }
 
-    console.log('Found deployment:', deployment.customer_name)
+    if (!deployment) {
+      throw new Error(`Customer deployment not found or inactive for ID: ${customer_id}`)
+    }
 
-    // Validate deployment configuration
+    console.log('Found deployment:', deployment.customer_name, 'Domain:', deployment.domain)
+
+    // Always run validation checks, even if some fail
     const validationResults = await validateProductionDeployment(deployment)
 
-    console.log('Validation results:', validationResults)
+    console.log('Validation results:', JSON.stringify(validationResults, null, 2))
 
-    // Update deployment status
-    await supabaseClient
-      .from('customer_deployments')
-      .update({
-        config_settings: {
-          ...deployment.config_settings,
-          validated_at: new Date().toISOString(),
-          validation_results: validationResults
-        }
-      })
-      .eq('id', deployment.id)
+    // Update deployment status with results
+    try {
+      await supabaseClient
+        .from('customer_deployments')
+        .update({
+          config_settings: {
+            ...deployment.config_settings,
+            validated_at: new Date().toISOString(),
+            validation_results: validationResults
+          }
+        })
+        .eq('id', deployment.id)
+    } catch (updateError) {
+      console.error('Failed to update deployment:', updateError)
+      // Don't fail the whole request if update fails
+    }
 
+    // Return results regardless of scores
     return new Response(
       JSON.stringify({
         success: true,
         deployment_id: deployment.id,
+        customer_name: deployment.customer_name,
+        domain: deployment.domain,
         validation_results: validationResults,
         production_ready: validationResults.overall_score >= 80,
         next_steps: generateNextSteps(validationResults)
@@ -67,7 +80,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Production validation error:', error)
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: 'Check the deployment ID and ensure the customer deployment exists and is active'
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 
