@@ -27,12 +27,18 @@ import {
   Clock,
   Settings,
   FileCode,
-  Webhook
+  Webhook,
+  Container,
+  Activity
 } from 'lucide-react';
 
 const DeveloperCentricWAF = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  
+  // Docker WAF States
+  const [dockerStatus, setDockerStatus] = useState('stopped');
+  const [wafMetrics, setWafMetrics] = useState(null);
   
   // GitOps States
   const [gitopsConfig, setGitopsConfig] = useState({
@@ -51,23 +57,52 @@ const DeveloperCentricWAF = () => {
   });
   const [generatedConfig, setGeneratedConfig] = useState('');
   
-  // CI/CD Testing States
-  const [cicdTest, setCicdTest] = useState({
-    repository_url: '',
-    branch_name: 'main',
-    test_suite_name: 'security-scan'
+  // OpenAPI Testing States
+  const [openApiConfig, setOpenApiConfig] = useState({
+    targetUrl: 'http://localhost:8080',
+    openApiSpec: '',
+    testCount: 50
   });
   const [testResults, setTestResults] = useState(null);
   
-  // Debug Session States
+  // Request Replay States
+  const [replayRequests, setReplayRequests] = useState([]);
+  const [cliOutput, setCLIOutput] = useState('');
   const [debugSession, setDebugSession] = useState({
     session_name: '',
-    target_domain: '',
+    target_domain: 'localhost:8080',
     debug_mode: 'live',
     session_duration_minutes: 60
   });
   const [activeDebugSession, setActiveDebugSession] = useState(null);
-  const [debugEvents, setDebugEvents] = useState([]);
+
+  // Docker WAF Container Management
+  const handleCheckDockerWAF = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:9090/waf/status');
+      if (response.ok) {
+        const status = await response.json();
+        setWafMetrics(status);
+        setDockerStatus('running');
+        toast({
+          title: "WAF Container Running",
+          description: `Policies: ${status.policies_loaded}, Rules: ${status.rules_active}, Requests: ${status.requests_processed}`,
+        });
+      } else {
+        throw new Error('WAF container not responding');
+      }
+    } catch (error) {
+      setDockerStatus('stopped');
+      toast({
+        title: "WAF Container Offline",
+        description: "Start with: docker-compose -f deployment/dev-waf/docker-compose.dev.yml up -d",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // GitOps Policy Management
   const handleGitopsSync = async () => {
@@ -84,8 +119,8 @@ const DeveloperCentricWAF = () => {
 
       setGitopsStatus(data.status);
       toast({
-        title: "GitOps Sync Initiated",
-        description: "Security policies are being synchronized with your repository.",
+        title: "GitOps Sync Completed",
+        description: "Security policies synchronized with repository",
       });
     } catch (error) {
       toast({
@@ -115,7 +150,7 @@ const DeveloperCentricWAF = () => {
       setGeneratedConfig(data.middleware_code);
       toast({
         title: "Dev WAF Generated",
-        description: `${devWafConfig.framework} middleware configuration generated successfully.`,
+        description: `${devWafConfig.framework} middleware ready for download`,
       });
     } catch (error) {
       toast({
@@ -128,15 +163,26 @@ const DeveloperCentricWAF = () => {
     }
   };
 
-  // CI/CD Security Testing
-  const handleRunSecurityTest = async () => {
+  // OpenAPI Security Testing
+  const handleRunOpenAPITest = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('cicd-security-tester', {
+      let parsedSpec = null;
+      if (openApiConfig.openApiSpec.trim()) {
+        try {
+          parsedSpec = JSON.parse(openApiConfig.openApiSpec);
+        } catch {
+          throw new Error('Invalid OpenAPI JSON specification');
+        }
+      }
+
+      const { data, error } = await supabase.functions.invoke('openapi-traffic-generator', {
         body: {
-          action: 'run_security_scan',
-          ...cicdTest,
-          commit_hash: 'latest'
+          openApiSpec: parsedSpec,
+          targetUrl: openApiConfig.targetUrl,
+          testCount: openApiConfig.testCount,
+          includeAttacks: true,
+          attackRatio: 0.4
         }
       });
 
@@ -144,12 +190,73 @@ const DeveloperCentricWAF = () => {
 
       setTestResults(data);
       toast({
-        title: "Security Test Started",
-        description: "CI/CD security testing pipeline initiated.",
+        title: "OpenAPI Test Completed",
+        description: `${data.summary.total} requests sent, ${data.summary.blocked} blocked`,
       });
     } catch (error) {
       toast({
-        title: "Test Failed",
+        title: "OpenAPI Test Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Traffic Simulation
+  const handleSimulateTraffic = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('simulate-traffic', {
+        body: {
+          targetUrl: openApiConfig.targetUrl,
+          pattern: 'mixed',
+          count: 25
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Traffic Simulation Complete",
+        description: `${data.summary.attacks} attacks sent, ${data.summary.blocked} blocked`,
+      });
+    } catch (error) {
+      toast({
+        title: "Traffic Simulation Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Request Replay
+  const handleRequestReplay = async (requestId: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:9090/waf/replay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: requestId, debug_enabled: true })
+      });
+
+      if (!response.ok) {
+        throw new Error('Replay failed - WAF container may not be running');
+      }
+
+      const result = await response.json();
+      setCLIOutput(JSON.stringify(result, null, 2));
+      
+      toast({
+        title: "Request Replayed",
+        description: `Request ${requestId} processed with full debugging`,
+      });
+    } catch (error) {
+      toast({
+        title: "Replay Failed",
         description: error.message,
         variant: "destructive"
       });
@@ -175,11 +282,11 @@ const DeveloperCentricWAF = () => {
       setActiveDebugSession(data.session);
       toast({
         title: "Debug Session Started",
-        description: "Real-time debug analysis is now active.",
+        description: "Real-time analysis active",
       });
     } catch (error) {
       toast({
-        title: "Debug Start Failed",
+        title: "Debug Failed",
         description: error.message,
         variant: "destructive"
       });
@@ -188,39 +295,72 @@ const DeveloperCentricWAF = () => {
     }
   };
 
-  // Load existing configurations
+  // Load data on component mount
   useEffect(() => {
-    const loadConfigurations = async () => {
+    const loadData = async () => {
       try {
-        // Load GitOps configs
-        const { data: gitopsData } = await supabase
+        // Load recent WAF requests for replay
+        const { data: requests } = await supabase
+          .from('waf_requests')
+          .select('*')
+          .order('timestamp', { ascending: false })
+          .limit(10);
+        
+        if (requests) {
+          setReplayRequests(requests);
+        }
+
+        // Load GitOps config
+        const { data: gitops } = await supabase
           .from('gitops_security_policies')
           .select('*')
           .limit(1)
           .maybeSingle();
         
-        if (gitopsData) {
-          setGitopsConfig(gitopsData);
-          setGitopsStatus(gitopsData.sync_status);
+        if (gitops) {
+          setGitopsConfig(gitops);
+          setGitopsStatus(gitops.sync_status);
         }
 
-        // Load debug sessions
-        const { data: debugData } = await supabase
+        // Load active debug session
+        const { data: debug } = await supabase
           .from('debug_sessions')
           .select('*')
           .eq('is_active', true)
           .limit(1)
           .maybeSingle();
         
-        if (debugData) {
-          setActiveDebugSession(debugData);
+        if (debug) {
+          setActiveDebugSession(debug);
         }
       } catch (error) {
-        console.error('Error loading configurations:', error);
+        console.error('Error loading data:', error);
       }
     };
 
-    loadConfigurations();
+    loadData();
+  }, []);
+
+  // Check WAF status periodically
+  useEffect(() => {
+    const checkWAFStatus = async () => {
+      try {
+        const response = await fetch('http://localhost:9090/waf/status');
+        if (response.ok) {
+          const status = await response.json();
+          setWafMetrics(status);
+          setDockerStatus('running');
+        } else {
+          setDockerStatus('stopped');
+        }
+      } catch (error) {
+        setDockerStatus('stopped');
+      }
+    };
+
+    checkWAFStatus();
+    const interval = setInterval(checkWAFStatus, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -231,29 +371,143 @@ const DeveloperCentricWAF = () => {
           Developer-Centric WAF
         </h2>
         <Badge variant="secondary" className="bg-gradient-to-r from-cyan-500 to-blue-600">
-          Next-Generation DevSecOps
+          Production-Ready DevSecOps
         </Badge>
       </div>
 
-      <Tabs defaultValue="gitops" className="space-y-6">
-        <TabsList className="grid grid-cols-4 w-full bg-slate-800 border-slate-700">
+      <Tabs defaultValue="docker" className="space-y-6">
+        <TabsList className="grid grid-cols-5 w-full bg-slate-800 border-slate-700">
+          <TabsTrigger value="docker" className="data-[state=active]:bg-slate-700">
+            <Container className="w-4 h-4 mr-2" />
+            Docker WAF
+          </TabsTrigger>
           <TabsTrigger value="gitops" className="data-[state=active]:bg-slate-700">
             <GitBranch className="w-4 h-4 mr-2" />
-            GitOps Policies
+            GitOps
           </TabsTrigger>
-          <TabsTrigger value="dev-waf" className="data-[state=active]:bg-slate-700">
-            <Download className="w-4 h-4 mr-2" />
-            Dev WAF Generator
+          <TabsTrigger value="cli" className="data-[state=active]:bg-slate-700">
+            <Terminal className="w-4 h-4 mr-2" />
+            CLI Tools
           </TabsTrigger>
-          <TabsTrigger value="cicd" className="data-[state=active]:bg-slate-700">
+          <TabsTrigger value="openapi" className="data-[state=active]:bg-slate-700">
             <TestTube2 className="w-4 h-4 mr-2" />
-            CI/CD Testing
+            OpenAPI Testing
           </TabsTrigger>
-          <TabsTrigger value="debug" className="data-[state=active]:bg-slate-700">
+          <TabsTrigger value="replay" className="data-[state=active]:bg-slate-700">
             <Bug className="w-4 h-4 mr-2" />
-            Real-time Debug
+            Request Replay
           </TabsTrigger>
         </TabsList>
+
+        {/* Docker WAF Container */}
+        <TabsContent value="docker">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Container className="h-5 w-5 text-cyan-400" />
+                  Standalone WAF Container (ana-waf-dev)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Container Status:</span>
+                  <Badge variant={dockerStatus === 'running' ? 'default' : 'secondary'}>
+                    {dockerStatus}
+                  </Badge>
+                </div>
+                
+                {wafMetrics && (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Version:</span>
+                      <span className="text-white">{wafMetrics.version}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Policies Loaded:</span>
+                      <span className="text-green-400">{wafMetrics.policies_loaded}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Active Rules:</span>
+                      <span className="text-blue-400">{wafMetrics.rules_active}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Requests Processed:</span>
+                      <span className="text-white">{wafMetrics.requests_processed}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Threats Blocked:</span>
+                      <span className="text-red-400">{wafMetrics.threats_blocked}</span>
+                    </div>
+                  </div>
+                )}
+                
+                <Button onClick={handleCheckDockerWAF} disabled={loading} className="w-full">
+                  <Activity className="w-4 h-4 mr-2" />
+                  Check WAF Status
+                </Button>
+                
+                <div className="space-y-2 text-xs text-slate-400">
+                  <div className="font-semibold">Quick Commands:</div>
+                  <div>🐳 Start: <code className="bg-slate-700 px-1 rounded text-green-400">docker-compose -f deployment/dev-waf/docker-compose.dev.yml up -d</code></div>
+                  <div>🌐 Proxy: <code className="bg-slate-700 px-1 rounded text-blue-400">http://localhost:8080</code></div>
+                  <div>⚙️ Management: <code className="bg-slate-700 px-1 rounded text-purple-400">http://localhost:9090</code></div>
+                  <div>📊 Metrics: <code className="bg-slate-700 px-1 rounded text-yellow-400">http://localhost:9090/metrics</code></div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-green-400" />
+                  Real WAF Features
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-slate-300">SQL Injection Protection</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-slate-300">XSS Attack Detection</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-slate-300">Path Traversal Prevention</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-slate-300">Rate Limiting & DDoS Protection</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-slate-300">Live Policy Hot-Reloading</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-slate-300">Request Replay Debugging</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-slate-300">Prometheus Metrics Export</span>
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-3 bg-slate-700 rounded">
+                  <div className="text-xs text-slate-300 font-semibold">Security Status:</div>
+                  <div className="text-xs text-green-400">
+                    ✓ Production-grade OpenResty WAF<br/>
+                    ✓ Real attack blocking & logging<br/>
+                    ✓ Developer-friendly debugging tools
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* GitOps Policy Management */}
         <TabsContent value="gitops">
@@ -262,7 +516,7 @@ const DeveloperCentricWAF = () => {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <GitMerge className="h-5 w-5 text-cyan-400" />
-                  GitOps Configuration
+                  Policy-as-Code Configuration
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -311,11 +565,11 @@ const DeveloperCentricWAF = () => {
                     checked={gitopsConfig.auto_deploy}
                     onCheckedChange={(checked) => setGitopsConfig({...gitopsConfig, auto_deploy: checked})}
                   />
-                  <Label className="text-slate-300">Auto-deploy changes</Label>
+                  <Label className="text-slate-300">Auto-deploy policy changes</Label>
                 </div>
                 <Button onClick={handleGitopsSync} disabled={loading} className="w-full">
                   <Webhook className="w-4 h-4 mr-2" />
-                  Sync Policies
+                  Sync Security Policies
                 </Button>
               </CardContent>
             </Card>
@@ -323,45 +577,61 @@ const DeveloperCentricWAF = () => {
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-green-400" />
-                  Sync Status
+                  <GitBranch className="h-5 w-5 text-green-400" />
+                  GitOps Status & Pipeline
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Current Status:</span>
+                  <span className="text-slate-300">Sync Status:</span>
                   <Badge variant={gitopsStatus === 'synced' ? 'default' : 'secondary'}>
                     {gitopsStatus}
                   </Badge>
                 </div>
                 <div className="space-y-2">
-                  <div className="text-sm text-slate-300">Version-Controlled Security Policies</div>
+                  <div className="text-sm text-slate-300">Policy Deployment Pipeline</div>
                   <Progress value={gitopsStatus === 'synced' ? 100 : 60} className="h-2" />
                 </div>
-                <div className="space-y-2 text-sm text-slate-400">
-                  <div>• Automatic policy synchronization</div>
-                  <div>• Git-based security configuration</div>
-                  <div>• Branch-based deployment pipeline</div>
-                  <div>• Webhook-driven updates</div>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="text-slate-300 font-semibold">Features:</div>
+                  <div className="space-y-1 text-slate-400">
+                    <div>• Version-controlled security policies</div>
+                    <div>• Branch-based deployment workflow</div>
+                    <div>• Webhook-driven policy sync</div>
+                    <div>• Automated policy validation</div>
+                    <div>• Rollback capabilities</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 bg-slate-700 rounded">
+                  <div className="text-xs text-slate-300">Example Policy (YAML):</div>
+                  <pre className="text-xs text-green-400 mt-1 overflow-x-auto">
+{`rules:
+  - id: "SQL_INJECTION_001"
+    pattern: "union.*select"
+    action: "block"
+    severity: "high"`}
+                  </pre>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Dev WAF Generator */}
-        <TabsContent value="dev-waf">
+        {/* CLI Tools */}
+        <TabsContent value="cli">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-purple-400" />
-                  Framework Configuration
+                  <Terminal className="h-5 w-5 text-green-400" />
+                  ANA WAF CLI Tool (ana-waf)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Framework</Label>
+                  <Label className="text-slate-300">Framework Selection</Label>
                   <Select value={devWafConfig.framework} onValueChange={(value) => setDevWafConfig({...devWafConfig, framework: value})}>
                     <SelectTrigger className="bg-slate-700 border-slate-600">
                       <SelectValue />
@@ -369,26 +639,39 @@ const DeveloperCentricWAF = () => {
                     <SelectContent>
                       <SelectItem value="express">Express.js</SelectItem>
                       <SelectItem value="fastify">Fastify</SelectItem>
-                      <SelectItem value="koa">Koa.js</SelectItem>
                       <SelectItem value="nextjs">Next.js</SelectItem>
                       <SelectItem value="django">Django</SelectItem>
-                      <SelectItem value="flask">Flask</SelectItem>
                       <SelectItem value="spring">Spring Boot</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-slate-300">Configuration Name</Label>
-                  <Input
-                    value={devWafConfig.config_name}
-                    onChange={(e) => setDevWafConfig({...devWafConfig, config_name: e.target.value})}
-                    className="bg-slate-700 border-slate-600 text-white"
-                  />
-                </div>
+                
                 <Button onClick={handleGenerateDevWAF} disabled={loading} className="w-full">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Generate Dev WAF
+                  <Download className="w-4 h-4 mr-2" />
+                  Generate Framework Middleware
                 </Button>
+
+                <div className="space-y-2 text-xs font-mono">
+                  <div className="text-slate-300 font-semibold">CLI Installation:</div>
+                  <div className="bg-slate-900 p-2 rounded text-green-400">
+                    cd cli && npm install -g .
+                  </div>
+                  
+                  <div className="text-slate-300 font-semibold mt-3">Security Testing:</div>
+                  <div className="bg-slate-900 p-2 rounded text-green-400">
+                    ana-waf test -u http://localhost:8080 --strict
+                  </div>
+                  
+                  <div className="text-slate-300 font-semibold mt-3">Traffic Simulation:</div>
+                  <div className="bg-slate-900 p-2 rounded text-green-400">
+                    ana-waf simulate -u http://localhost:8080 --count 50
+                  </div>
+                  
+                  <div className="text-slate-300 font-semibold mt-3">Request Replay:</div>
+                  <div className="bg-slate-900 p-2 rounded text-green-400">
+                    ana-waf replay req_123456 --debug
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -396,7 +679,7 @@ const DeveloperCentricWAF = () => {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <FileCode className="h-5 w-5 text-yellow-400" />
-                  Generated Middleware
+                  Generated Middleware Code
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -404,60 +687,88 @@ const DeveloperCentricWAF = () => {
                   value={generatedConfig}
                   readOnly
                   placeholder="Generated middleware code will appear here..."
-                  className="bg-slate-900 border-slate-600 text-white font-mono text-sm min-h-[200px]"
+                  className="bg-slate-900 border-slate-600 text-white font-mono text-sm min-h-[300px]"
                 />
                 {generatedConfig && (
-                  <Button variant="outline" className="mt-4" onClick={() => navigator.clipboard.writeText(generatedConfig)}>
-                    Copy Code
-                  </Button>
+                  <div className="mt-4 flex gap-2">
+                    <Button variant="outline" onClick={() => navigator.clipboard.writeText(generatedConfig)}>
+                      Copy Code
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      const blob = new Blob([generatedConfig], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `waf-middleware-${devWafConfig.framework}.js`;
+                      a.click();
+                    }}>
+                      Download
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* CI/CD Security Testing */}
-        <TabsContent value="cicd">
+        {/* OpenAPI Testing */}
+        <TabsContent value="openapi">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <TestTube2 className="h-5 w-5 text-orange-400" />
-                  CI/CD Test Configuration
+                  OpenAPI-Driven Security Testing
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Repository URL</Label>
+                  <Label className="text-slate-300">Target URL</Label>
                   <Input
-                    placeholder="https://github.com/org/repo"
-                    value={cicdTest.repository_url}
-                    onChange={(e) => setCicdTest({...cicdTest, repository_url: e.target.value})}
+                    placeholder="http://localhost:8080 or https://api.example.com"
+                    value={openApiConfig.targetUrl}
+                    onChange={(e) => setOpenApiConfig({...openApiConfig, targetUrl: e.target.value})}
                     className="bg-slate-700 border-slate-600 text-white"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Branch</Label>
-                    <Input
-                      value={cicdTest.branch_name}
-                      onChange={(e) => setCicdTest({...cicdTest, branch_name: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Test Suite</Label>
-                    <Input
-                      value={cicdTest.test_suite_name}
-                      onChange={(e) => setCicdTest({...cicdTest, test_suite_name: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white"
-                    />
-                  </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Test Count</Label>
+                  <Input
+                    type="number"
+                    value={openApiConfig.testCount}
+                    onChange={(e) => setOpenApiConfig({...openApiConfig, testCount: parseInt(e.target.value)})}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
                 </div>
-                <Button onClick={handleRunSecurityTest} disabled={loading} className="w-full">
-                  <Play className="w-4 h-4 mr-2" />
-                  Run Security Tests
-                </Button>
+                
+                <div className="space-y-2">
+                  <Label className="text-slate-300">OpenAPI 3.0 Specification (JSON)</Label>
+                  <Textarea
+                    placeholder='{"openapi": "3.0.0", "info": {"title": "API", "version": "1.0.0"}, "paths": {...}}'
+                    value={openApiConfig.openApiSpec}
+                    onChange={(e) => setOpenApiConfig({...openApiConfig, openApiSpec: e.target.value})}
+                    className="bg-slate-700 border-slate-600 text-white font-mono text-sm min-h-[150px]"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <Button onClick={handleRunOpenAPITest} disabled={loading}>
+                    <TestTube2 className="w-4 h-4 mr-2" />
+                    Run Security Test
+                  </Button>
+                  <Button onClick={handleSimulateTraffic} disabled={loading} variant="outline">
+                    <Play className="w-4 h-4 mr-2" />
+                    Simulate Traffic
+                  </Button>
+                </div>
+                
+                <div className="text-xs text-slate-400 space-y-1">
+                  <div>• Generates realistic requests from OpenAPI spec</div>
+                  <div>• Injects SQL injection, XSS, and other attacks</div>
+                  <div>• Tests endpoint authentication & authorization</div>
+                  <div>• Validates API security posture</div>
+                </div>
               </CardContent>
             </Card>
 
@@ -465,30 +776,57 @@ const DeveloperCentricWAF = () => {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-400" />
-                  Test Results
+                  Test Results & Analysis
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 {testResults ? (
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
                       <span className="text-slate-300">Security Score:</span>
                       <Badge variant={testResults.security_score >= 80 ? 'default' : 'destructive'}>
                         {testResults.security_score}/100
                       </Badge>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-300">Vulnerabilities:</span>
-                      <span className="text-red-400">{testResults.vulnerabilities_found}</span>
+                    
+                    {testResults.summary && (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Total Requests:</span>
+                          <span className="text-white">{testResults.summary.total}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Successful:</span>
+                          <span className="text-green-400">{testResults.summary.successful}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Attacks Sent:</span>
+                          <span className="text-yellow-400">{testResults.summary.attacks}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Threats Blocked:</span>
+                          <span className="text-red-400">{testResults.summary.blocked}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <div className="text-sm text-slate-300">Block Rate:</div>
+                      <Progress 
+                        value={testResults.summary ? (testResults.summary.blocked / testResults.summary.attacks) * 100 : 0} 
+                        className="h-2" 
+                      />
                     </div>
-                    <Progress value={testResults.security_score} className="h-2" />
+                    
                     <div className="text-xs text-slate-400">
-                      Test Duration: {testResults.test_duration_ms}ms
+                      Real traffic simulation with attack patterns injected into your API endpoints
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center text-slate-400 py-8">
-                    No test results yet. Run a security test to see results.
+                  <div className="text-center text-slate-400 py-12">
+                    <TestTube2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <div>Run OpenAPI security tests to see detailed results</div>
+                    <div className="text-xs mt-2">Results include vulnerability analysis and recommendations</div>
                   </div>
                 )}
               </CardContent>
@@ -496,93 +834,109 @@ const DeveloperCentricWAF = () => {
           </div>
         </TabsContent>
 
-        {/* Real-time Debug */}
-        <TabsContent value="debug">
+        {/* Request Replay & Debugging */}
+        <TabsContent value="replay">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Terminal className="h-5 w-5 text-red-400" />
-                  Debug Session Setup
+                  <Bug className="h-5 w-5 text-red-400" />
+                  Request Replay & Debug
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Session Name</Label>
-                  <Input
-                    placeholder="Debug session name"
-                    value={debugSession.session_name}
-                    onChange={(e) => setDebugSession({...debugSession, session_name: e.target.value})}
-                    className="bg-slate-700 border-slate-600 text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-slate-300">Target Domain</Label>
-                  <Input
-                    placeholder="api.example.com"
-                    value={debugSession.target_domain}
-                    onChange={(e) => setDebugSession({...debugSession, target_domain: e.target.value})}
-                    className="bg-slate-700 border-slate-600 text-white"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Debug Mode</Label>
-                    <Select value={debugSession.debug_mode} onValueChange={(value) => setDebugSession({...debugSession, debug_mode: value})}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="live">Live Analysis</SelectItem>
-                        <SelectItem value="replay">Replay Mode</SelectItem>
-                        <SelectItem value="capture">Capture Only</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Label className="text-slate-300">Recent WAF Requests</Label>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {replayRequests.length > 0 ? replayRequests.map((req) => (
+                      <div key={req.id} className="flex items-center justify-between bg-slate-700 p-3 rounded">
+                        <div className="text-sm flex-1">
+                          <div className="text-white font-medium">{req.request_method} {req.request_path}</div>
+                          <div className="text-slate-400 text-xs mt-1">
+                            {req.source_ip} • Action: {req.action} • Score: {req.threat_score}
+                          </div>
+                          <div className="text-slate-500 text-xs">
+                            {new Date(req.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                        <Button size="sm" onClick={() => handleRequestReplay(req.id)} disabled={loading}>
+                          <Play className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )) : (
+                      <div className="text-center text-slate-400 py-4">
+                        No WAF requests available for replay
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Duration (min)</Label>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Debug Session Configuration</Label>
+                  <div className="grid grid-cols-2 gap-2">
                     <Input
-                      type="number"
-                      value={debugSession.session_duration_minutes}
-                      onChange={(e) => setDebugSession({...debugSession, session_duration_minutes: parseInt(e.target.value)})}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="Session name"
+                      value={debugSession.session_name}
+                      onChange={(e) => setDebugSession({...debugSession, session_name: e.target.value})}
+                      className="bg-slate-700 border-slate-600 text-white text-sm"
+                    />
+                    <Input
+                      placeholder="Target domain"
+                      value={debugSession.target_domain}
+                      onChange={(e) => setDebugSession({...debugSession, target_domain: e.target.value})}
+                      className="bg-slate-700 border-slate-600 text-white text-sm"
                     />
                   </div>
+                  <Button onClick={handleStartDebugSession} disabled={loading} variant="outline" className="w-full">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Start Debug Session
+                  </Button>
                 </div>
-                <Button onClick={handleStartDebugSession} disabled={loading} className="w-full">
-                  <Bug className="w-4 h-4 mr-2" />
-                  Start Debug Session
-                </Button>
+                
+                <div className="text-xs text-slate-400 space-y-1">
+                  <div>• Click replay to re-process requests with full debugging</div>
+                  <div>• Shows rule-by-rule evaluation and decision logic</div>
+                  <div>• Perfect for fine-tuning WAF policies</div>
+                  <div>• Real-time threat scoring analysis</div>
+                </div>
               </CardContent>
             </Card>
 
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-400" />
-                  Live Debug Events
+                  <Terminal className="h-5 w-5 text-green-400" />
+                  Debug Output & Analysis
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {activeDebugSession ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-300">Active Session:</span>
-                      <Badge variant="default">{activeDebugSession.session_name}</Badge>
+              <CardContent>
+                <Textarea
+                  value={cliOutput}
+                  readOnly
+                  placeholder="Request replay debug output will appear here with detailed rule evaluation, threat scoring, and processing timeline..."
+                  className="bg-slate-900 border-slate-600 text-white font-mono text-sm min-h-[300px]"
+                />
+                
+                {activeDebugSession && (
+                  <div className="mt-4 p-3 bg-slate-700 rounded">
+                    <div className="text-sm text-slate-300 font-semibold">Active Debug Session:</div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      {activeDebugSession.session_name} • {activeDebugSession.target_domain}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-slate-400" />
-                      <span className="text-slate-300">Events Captured: {activeDebugSession.events_captured}</span>
-                    </div>
-                    <div className="bg-slate-900 p-3 rounded border border-slate-600 max-h-[200px] overflow-y-auto">
-                      <div className="text-xs text-slate-400 font-mono">
-                        Real-time debug events will appear here...
-                      </div>
+                    <div className="text-xs text-green-400">
+                      Events Captured: {activeDebugSession.events_captured || 0}
                     </div>
                   </div>
-                ) : (
-                  <div className="text-center text-slate-400 py-8">
-                    No active debug session. Start a session to begin live analysis.
+                )}
+                
+                {cliOutput && (
+                  <div className="mt-4 flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(cliOutput)}>
+                      Copy Debug Output
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setCLIOutput('')}>
+                      Clear Output
+                    </Button>
                   </div>
                 )}
               </CardContent>
