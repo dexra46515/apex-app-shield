@@ -9,6 +9,7 @@ import HardwareTrustDashboard from '@/components/HardwareTrustDashboard';
 import ManagementCompliance from '@/components/ManagementCompliance';
 import DeploymentModels from '@/components/DeploymentModels';
 import ProductionReadinessChecker from '@/components/ProductionReadinessChecker';
+import DeveloperCentricWAF from '@/components/DeveloperCentricWAF';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Index = () => {
@@ -37,11 +38,12 @@ const Index = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
               Enterprise WAF Security Platform
             </h1>
-            <TabsList className="grid grid-cols-8 w-[1600px] bg-slate-800 border-slate-700">
+            <TabsList className="grid grid-cols-9 w-[1800px] bg-slate-800 border-slate-700">
               <TabsTrigger value="standard" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Dashboard</TabsTrigger>
               <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced</TabsTrigger>
               <TabsTrigger value="hardware" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Hardware Trust</TabsTrigger>
               <TabsTrigger value="waf-management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">WAF Mgmt</TabsTrigger>
+              <TabsTrigger value="developer" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Developer</TabsTrigger>
               <TabsTrigger value="management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Management</TabsTrigger>
               <TabsTrigger value="deployment" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Deployment</TabsTrigger>
               <TabsTrigger value="production" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Production</TabsTrigger>
@@ -63,6 +65,10 @@ const Index = () => {
 
           <TabsContent value="waf-management">
             <WAFManagement />
+          </TabsContent>
+
+          <TabsContent value="developer">
+            <DeveloperCentricWAF />
           </TabsContent>
 
           <TabsContent value="management">
