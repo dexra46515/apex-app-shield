@@ -180,8 +180,14 @@ serve(async (req) => {
       
       // Process security events BEFORE returning response
       console.log('🔄 Starting security event processing...');
-      await processSecurityEvents(results, targetUrl);
-      console.log('✅ Security event processing completed');
+      console.log(`📊 Processing ${results.length} results for ${targetUrl}`);
+      
+      try {
+        await processSecurityEvents(results, targetUrl);
+        console.log('✅ Security event processing completed');
+      } catch (error) {
+        console.error('❌ Security processing failed:', error);
+      }
       
       return new Response(
         JSON.stringify({
@@ -225,8 +231,9 @@ serve(async (req) => {
 
 // Background task to process security events and trigger analysis
 async function processSecurityEvents(results: any[], targetUrl: string) {
-  console.log('🔄 Starting security event processing...');
-  console.log(`📊 Processing ${results.length} results for ${targetUrl}`);
+  console.log('🚀 processSecurityEvents function called');
+  console.log('🚀 Starting security event processing...');
+  console.log(`🚀 Processing ${results.length} results for ${targetUrl}`);
   
   try {
     const supabase = createClient(
