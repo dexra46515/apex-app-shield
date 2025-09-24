@@ -71,7 +71,7 @@ serve(async (req) => {
       
       console.log(`Making ${count} REAL HTTP requests to ${targetUrl} with pattern: ${pattern}`);
 
-      const results = [];
+      const results: Array<any> = [];
       let successCount = 0;
       let failedCount = 0;
       let attackCount = 0;
@@ -80,6 +80,7 @@ serve(async (req) => {
         let testPath: string;
         let payload = '';
         let isAttack = false;
+        let timeoutId: number | undefined;
         
         // Determine if this should be an attack or legitimate request
         if (pattern === 'attack' || (pattern === 'mixed' && Math.random() < 0.4)) {
@@ -112,8 +113,6 @@ serve(async (req) => {
           }
 
           // Set timeout manually since AbortSignal.timeout might not be available
-          let timeoutId: number | undefined;
-          
           timeoutId = setTimeout(() => {
             throw new Error('Request timeout (10s)');
           }, 10000);
