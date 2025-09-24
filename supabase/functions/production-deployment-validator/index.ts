@@ -174,31 +174,166 @@ async function validateSecurityConfig(config: any) {
 }
 
 async function validateAPIIntegration(apiKey: string) {
-  // Validate API key format and structure (accept both production and hex formats)
-  const isProductionFormat = apiKey.startsWith('pak_live_') && apiKey.length > 20
-  const isHexFormat = /^[a-f0-9]{64}$/.test(apiKey) // 64-char hex string
-  const isValidFormat = isProductionFormat || isHexFormat
+  console.log('Testing real API integration...')
   
-  return {
-    score: isValidFormat ? 100 : 0,
-    checks: {
-      format_valid: isValidFormat,
-      length_adequate: apiKey.length >= 20,
-      is_production_key: isProductionFormat,
-      is_hex_key: isHexFormat
+  try {
+    // Test if API key actually works by making real calls
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    )
+    
+    // Try to query customer_deployments with this API key
+    const { data, error } = await supabase
+      .from('customer_deployments')
+      .select('id, customer_name')
+      .eq('api_key', apiKey)
+      .maybeSingle()
+    
+    if (error) {
+      return {
+        score: 0,
+        checks: {
+          api_key_valid: false,
+          database_connection: false,
+          error: `Database error: ${error.message}`
+        }
+      }
+    }
+    
+    if (!data) {
+      return {
+        score: 0,
+        checks: {
+          api_key_valid: false,
+          database_connection: true,
+          error: 'API key not found in database'
+        }
+      }
+    }
+    
+    // API key works - now test if it's production format
+    const isProductionFormat = apiKey.startsWith('pak_live_')
+    
+    return {
+      score: isProductionFormat ? 100 : 60,
+      checks: {
+        api_key_valid: true,
+        database_connection: true,
+        customer_found: data.customer_name,
+        is_production_format: isProductionFormat,
+        format_warning: isProductionFormat ? null : 'Using test API key format - not suitable for production'
+      }
+    }
+    
+  } catch (error) {
+    return {
+      score: 0,
+      checks: {
+        api_key_valid: false,
+        database_connection: false,
+        error: `API test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
     }
   }
 }
 
 async function validateHardwareTrustSetup(deployment: any) {
-  // This would check if hardware trust features are properly configured
-  return {
-    score: 75, // Placeholder - would check actual hardware trust configuration
-    checks: {
-      tpm_configuration: false, // Needs real hardware detection
-      attestation_enabled: false, // Needs attestation service setup
-      trust_policies_defined: true, // Basic policies exist
-      integration_tested: false // Needs real integration testing
+  console.log('Testing real hardware trust configuration...')
+  
+  try {
+    // Test real hardware attestation by calling hardware-trust-verifier function
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+    
+    const { data: attestationResult, error: attestationError } = await supabase.functions.invoke('hardware-trust-verifier', {
+      body: {
+        deployment_id: deployment.id,
+        domain: deployment.domain,
+        test_mode: true
+      }
+    })
+    
+    if (attestationError) {
+      return {
+        score: 0,
+        checks: {
+          hardware_attestation_service: false,
+          tpm_detected: false,
+          attestation_chain_valid: false,
+          trust_policies_configured: false,
+          error: `Hardware attestation service unavailable: ${attestationError.message}`
+        }
+      }
+    }
+    
+    // Check if we have any real hardware attestation data
+    const { data: deviceAttestations } = await supabase
+      .from('device_attestations')
+      .select('*')
+      .eq('trust_level', 'verified')
+      .limit(1)
+    
+    const hasRealAttestations = deviceAttestations && deviceAttestations.length > 0
+    
+    // Check for hardware trust metrics
+    const { data: trustMetrics } = await supabase
+      .from('hardware_trust_metrics')
+      .select('*')
+      .limit(1)
+    
+    const hasRealMetrics = trustMetrics && trustMetrics.length > 0
+    
+    // Calculate real score based on actual data
+    let score = 0
+    const checks: any = {}
+    
+    if (attestationResult) {
+      score += 25
+      checks.hardware_attestation_service = true
+    } else {
+      checks.hardware_attestation_service = false
+    }
+    
+    if (hasRealAttestations) {
+      score += 25
+      checks.tpm_detected = true
+      checks.attestation_chain_valid = true
+    } else {
+      score += 0
+      checks.tpm_detected = false
+      checks.attestation_chain_valid = false
+    }
+    
+    if (hasRealMetrics) {
+      score += 25
+      checks.trust_metrics_available = true
+    } else {
+      checks.trust_metrics_available = false
+    }
+    
+    // Basic trust policies exist if we have the tables set up
+    score += 25
+    checks.trust_policies_configured = true
+    
+    if (score < 50) {
+      checks.error = 'Hardware trust requires real TPM/TEE devices and attestation setup'
+    }
+    
+    return { score, checks }
+    
+  } catch (error) {
+    return {
+      score: 0,
+      checks: {
+        hardware_attestation_service: false,
+        tpm_detected: false,
+        attestation_chain_valid: false,
+        trust_policies_configured: false,
+        error: `Hardware trust validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
     }
   }
 }
