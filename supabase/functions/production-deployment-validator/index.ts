@@ -97,7 +97,7 @@ async function validateProductionDeployment(deployment: any) {
   const results = {
     domain_validation: await validateDomain(deployment.domain),
     security_configuration: await validateSecurityConfig(deployment.config_settings),
-    api_integration: await validateAPIIntegration(deployment.api_key),
+    api_integration: await validateAPIIntegration(deployment.api_key, deployment.domain),
     hardware_trust_setup: await validateHardwareTrustSetup(deployment),
     overall_score: 0
   }
@@ -116,34 +116,70 @@ async function validateProductionDeployment(deployment: any) {
 }
 
 async function validateDomain(domain: string) {
+  console.log(`Making REAL HTTP request to domain: ${domain}`)
+  
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
+    // Make real HTTP request to the actual domain
     const response = await fetch(`https://${domain}`, { 
-      method: 'HEAD',
-      signal: controller.signal
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'WAF-Production-Validator/1.0'
+      }
     });
     
     clearTimeout(timeoutId);
     
+    console.log(`Domain ${domain} responded with status: ${response.status}`)
+    
+    // Real security header checks
+    const securityHeaders = {
+      'strict-transport-security': response.headers.get('strict-transport-security'),
+      'x-frame-options': response.headers.get('x-frame-options'),
+      'x-content-type-options': response.headers.get('x-content-type-options'),
+      'content-security-policy': response.headers.get('content-security-policy'),
+      'x-xss-protection': response.headers.get('x-xss-protection')
+    }
+    
+    // Calculate security score based on actual headers
+    let securityScore = 0
+    if (securityHeaders['strict-transport-security']) securityScore += 20
+    if (securityHeaders['x-frame-options']) securityScore += 20
+    if (securityHeaders['x-content-type-options']) securityScore += 20
+    if (securityHeaders['content-security-policy']) securityScore += 20
+    if (securityHeaders['x-xss-protection']) securityScore += 20
+    
+    const finalScore = response.ok ? Math.max(50, securityScore) : 0
+    
+    console.log(`Domain ${domain} security score: ${finalScore}`)
+    
     return {
-      score: response.ok ? 100 : 50,
+      score: finalScore,
       checks: {
         dns_resolves: true,
         ssl_valid: response.url.startsWith('https://'),
         response_code: response.status,
-        headers_present: response.headers.get('server') !== null
+        response_time_ms: Date.now() - Date.now(), // Placeholder
+        security_headers: securityHeaders,
+        security_score: securityScore,
+        server_header: response.headers.get('server'),
+        content_length: response.headers.get('content-length'),
+        last_modified: response.headers.get('last-modified')
       }
     }
   } catch (error) {
+    console.log(`Domain ${domain} failed with error: ${error}`)
     return {
       score: 0,
       checks: {
         dns_resolves: false,
         ssl_valid: false,
         response_code: null,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Connection failed',
+        domain_tested: domain
       }
     }
   }
@@ -174,8 +210,8 @@ async function validateSecurityConfig(config: any) {
   return { score, checks }
 }
 
-async function validateAPIIntegration(apiKey: string) {
-  console.log('Testing real API integration...')
+async function validateAPIIntegration(apiKey: string, domain: string) {
+  console.log(`Testing REAL API integration for domain: ${domain} with key: ${apiKey.substring(0, 8)}...`)
   
   try {
     // Test if API key actually works by making real calls
@@ -187,53 +223,78 @@ async function validateAPIIntegration(apiKey: string) {
     // Try to query customer_deployments with this API key
     const { data, error } = await supabase
       .from('customer_deployments')
-      .select('id, customer_name')
+      .select('id, customer_name, domain, created_at')
       .eq('api_key', apiKey)
       .maybeSingle()
     
     if (error) {
+      console.log(`API validation error for ${domain}: ${error.message}`)
       return {
         score: 0,
         checks: {
           api_key_valid: false,
           database_connection: false,
-          error: `Database error: ${error.message}`
+          domain_match: false,
+          error: `Database error: ${error.message}`,
+          tested_domain: domain
         }
       }
     }
     
     if (!data) {
+      console.log(`API key not found for domain: ${domain}`)
       return {
         score: 0,
         checks: {
           api_key_valid: false,
           database_connection: true,
-          error: 'API key not found in database'
+          domain_match: false,
+          error: 'API key not found in database',
+          tested_domain: domain
         }
       }
     }
     
-    // API key works - now test if it's production format
+    // Check if domain matches the one in database
+    const domainMatches = data.domain === domain
+    console.log(`Domain match for ${domain}: ${domainMatches} (DB: ${data.domain})`)
+    
+    // API key works - now test production readiness based on multiple factors
     const isProductionFormat = apiKey.startsWith('pak_live_')
+    const isRecentDeployment = new Date(data.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days
+    
+    let score = 0
+    if (domainMatches) score += 40
+    if (isProductionFormat) score += 40  
+    if (isRecentDeployment) score += 20
+    
+    console.log(`API integration score for ${domain}: ${score}`)
     
     return {
-      score: isProductionFormat ? 100 : 60,
+      score: score,
       checks: {
         api_key_valid: true,
         database_connection: true,
+        domain_match: domainMatches,
         customer_found: data.customer_name,
         is_production_format: isProductionFormat,
+        is_recent_deployment: isRecentDeployment,
+        db_domain: data.domain,
+        tested_domain: domain,
         format_warning: isProductionFormat ? null : 'Using test API key format - not suitable for production'
       }
     }
     
   } catch (error) {
+    console.log(`API validation failed for ${domain}: ${error instanceof Error ? error.message : 'Unknown error'}`)
     return {
       score: 0,
       checks: {
         api_key_valid: false,
         database_connection: false,
-        error: `API test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        domain_match: false,
+        error: `API test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        tested_domain: domain
       }
     }
   }
