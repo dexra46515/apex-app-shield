@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -281,10 +282,14 @@ async function sendToArcSight(payload: any, config: SIEMConfig) {
   // ArcSight CEF format
   const cefMessage = `CEF:0|${payload.deviceVendor}|${payload.deviceProduct}|${payload.deviceVersion}|${payload.signatureId}|${payload.name}|${payload.severity}|msg=${payload.message}`;
   
+  // Use Deno's standard base64 encoding
+  const credentials = `${config.username}:${config.password}`;
+  const base64Credentials = encode(credentials);
+  
   return await fetch(`${config.endpoint}/cef/events`, {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${btoa(`${config.username}:${config.password}`)}`,
+      'Authorization': `Basic ${base64Credentials}`,
       'Content-Type': 'text/plain'
     },
     body: cefMessage
