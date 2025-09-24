@@ -27,10 +27,12 @@ serve(async (req) => {
       case 'generate_github_action':
         return await generateGitHubAction(config);
       case 'run_vulnerability_scan':
-        return await runVulnerabilityScanner(supabase, config);
-      default:
-        throw new Error(`Unknown action: ${action}`);
-    }
+      return await runVulnerabilityScanner(supabase, config);
+    case 'openapi_test':
+      return await runSecurityTests(supabase, config);
+    default:
+      throw new Error(`Unknown action: ${action}`);
+  }
 
   } catch (error) {
     console.error('CI/CD Security Tester Error:', error);

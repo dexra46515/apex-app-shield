@@ -1,0 +1,33 @@
+{
+  "name": "ana-waf-cli",
+  "version": "1.0.0",
+  "description": "ANA WAF Developer CLI Tool",
+  "main": "ana-waf",
+  "bin": {
+    "ana-waf": "./ana-waf"
+  },
+  "scripts": {
+    "install-global": "npm install -g .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "waf",
+    "security",
+    "cli",
+    "developer",
+    "testing"
+  ],
+  "author": "ANA WAF Team",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.0.0",
+    "axios": "^1.5.0",
+    "js-yaml": "^4.1.0",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1",
+    "inquirer": "^8.2.6"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
