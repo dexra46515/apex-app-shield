@@ -84,7 +84,7 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
         .insert({
           customer_name: `Auto-discovered: ${domain}`,
           domain: domain,
-          deployment_type: 'external_test'
+          deployment_type: 'nginx'
         })
         .select()
         .single();
