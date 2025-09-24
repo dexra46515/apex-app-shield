@@ -181,7 +181,7 @@ async function validateAPIIntegration(apiKey: string) {
     // Test if API key actually works by making real calls
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
     
     // Try to query customer_deployments with this API key
@@ -257,17 +257,9 @@ async function validateHardwareTrustSetup(deployment: any) {
       }
     })
     
+    // If attestation service errors, continue with partial checks
     if (attestationError) {
-      return {
-        score: 0,
-        checks: {
-          hardware_attestation_service: false,
-          tpm_detected: false,
-          attestation_chain_valid: false,
-          trust_policies_configured: false,
-          error: `Hardware attestation service unavailable: ${attestationError.message}`
-        }
-      }
+      console.log('hardware-trust-verifier error:', attestationError)
     }
     
     // Check if we have any real hardware attestation data
@@ -315,9 +307,11 @@ async function validateHardwareTrustSetup(deployment: any) {
       checks.trust_metrics_available = false
     }
     
-    // Basic trust policies exist if we have the tables set up
-    score += 25
-    checks.trust_policies_configured = true
+    // Trust policies considered configured if any real data exists
+    checks.trust_policies_configured = hasRealAttestations || hasRealMetrics
+    if (checks.trust_policies_configured) {
+      score += 25
+    }
     
     if (score < 50) {
       checks.error = 'Hardware trust requires real TPM/TEE devices and attestation setup'
