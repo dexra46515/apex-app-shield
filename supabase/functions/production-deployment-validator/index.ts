@@ -19,6 +19,7 @@ serve(async (req) => {
 
     const { api_key, customer_id, deployment_config } = await req.json()
 
+    console.log('HANDLER VERSION: v2-skip-api-key')
     console.log('Production validation started for customer:', customer_id)
 
     // Skip API key validation for now - just get the deployment by ID
