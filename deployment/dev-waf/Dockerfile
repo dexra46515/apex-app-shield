@@ -7,18 +7,9 @@ RUN apk add --no-cache \
     jq \
     bash \
     ca-certificates \
-    openssl \
-    luarocks5.1 \
-    lua5.1-dev \
-    gcc \
-    musl-dev \
-    make
+    openssl
 
-# Install Lua dependencies
-RUN luarocks-5.1 install lua-cjson \
-    && luarocks-5.1 install lua-resty-http \
-    && luarocks-5.1 install lua-resty-template \
-    && luarocks-5.1 install luasocket
+# Skip Lua dependencies for now - using built-in OpenResty modules
 
 # Create WAF directories
 RUN mkdir -p /usr/local/openresty/waf \
