@@ -178,10 +178,10 @@ serve(async (req) => {
 
       const blockedCount = results.filter(r => r.blocked).length;
       
-      // Store events in database and trigger security analysis (background task)
-      processSecurityEvents(results, targetUrl).catch(error => 
-        console.error('Background processing failed:', error)
-      );
+      // Process security events BEFORE returning response
+      console.log('🔄 Starting security event processing...');
+      await processSecurityEvents(results, targetUrl);
+      console.log('✅ Security event processing completed');
       
       return new Response(
         JSON.stringify({
