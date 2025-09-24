@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAF Protected Demo App</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .header { background: #f4f4f4; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .test-section { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .test-form { margin: 10px 0; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
+        button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 3px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛡️ WAF Protected Demo Application</h1>
+        <p>This application is protected by ANA WAF. Try the security tests below!</p>
+    </div>
+
+    <div class="warning">
+        <strong>⚠️ Testing Environment:</strong> This is a demo application for testing WAF functionality. All requests are monitored and logged.
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Search Form (XSS Test)</h2>
+        <form class="test-form">
+            <input type="text" placeholder="Try: <script>alert('XSS')</script>" name="search">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+    <div class="test-section">
+        <h2>💬 Comment Form (SQL Injection Test)</h2>
+        <form class="test-form">
+            <textarea placeholder="Try: ' OR '1'='1' --" name="comment" rows="3"></textarea>
+            <button type="submit">Submit Comment</button>
+        </form>
+    </div>
+
+    <div class="test-section">
+        <h2>📁 File Browser (Path Traversal Test)</h2>
+        <form class="test-form">
+            <input type="text" placeholder="Try: ../../../etc/passwd" name="file">
+            <button type="submit">View File</button>
+        </form>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Command Runner (Command Injection Test)</h2>
+        <form class="test-form">
+            <input type="text" placeholder="Try: ; cat /etc/passwd" name="command">
+            <button type="submit">Run Command</button>
+        </form>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 WAF Status</h2>
+        <p>Protected by ANA WAF - All requests are filtered for security threats</p>
+        <ul>
+            <li>✅ SQL Injection Protection</li>
+            <li>✅ XSS Protection</li> 
+            <li>✅ Path Traversal Protection</li>
+            <li>✅ Command Injection Protection</li>
+            <li>✅ Rate Limiting</li>
+            <li>✅ Bot Detection</li>
+        </ul>
+    </div>
+
+    <script>
+        // Intercept form submissions for demo
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData);
+                
+                fetch('/api/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Response: ' + JSON.stringify(data));
+                })
+                .catch(error => {
+                    alert('Request blocked by WAF or error occurred: ' + error);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
