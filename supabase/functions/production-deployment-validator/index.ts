@@ -150,14 +150,26 @@ async function validateDomain(domain: string) {
 
 async function validateSecurityConfig(config: any) {
   const checks = {
-    fail_open_disabled: config?.fail_open === false,
+    fail_open_disabled: config?.fail_open === false,  // CRITICAL for production
     rate_limiting_enabled: config?.rate_limit > 0,
     ai_analysis_enabled: config?.ai_analysis === true,
     geo_blocking_configured: config?.geo_blocking === true
   }
 
-  const score = Object.values(checks).filter(Boolean).length * 25
+  // If fail_open is true, this is a critical security risk
+  if (config?.fail_open === true) {
+    return {
+      score: 0, // FAIL - Cannot be production ready with fail_open
+      checks: {
+        ...checks,
+        critical_security_risk: true,
+        fail_open_enabled: true,
+        production_blocker: "fail_open=true allows unfiltered traffic if WAF fails"
+      }
+    }
+  }
 
+  const score = Object.values(checks).filter(Boolean).length * 25
   return { score, checks }
 }
 
