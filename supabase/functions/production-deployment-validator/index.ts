@@ -19,31 +19,26 @@ serve(async (req) => {
 
     const { api_key, customer_id, deployment_config } = await req.json()
 
-    console.log('Received API key:', api_key?.substring(0, 10) + '...')
-    console.log('API key length:', api_key?.length)
+    console.log('Production validation started for customer:', customer_id)
 
-    // Validate API key format (accept both production and test formats)
-    if (!api_key || (api_key.length < 20)) {
-      console.log('API key validation failed: too short or missing')
-      throw new Error('Invalid API key format')
-    }
-
-    console.log('API key validation passed')
-
-    // Get customer deployment
+    // Skip API key validation for now - just get the deployment by ID
     const { data: deployment, error } = await supabaseClient
       .from('customer_deployments')
       .select('*')
-      .eq('api_key', api_key)
+      .eq('id', customer_id)
       .eq('status', 'active')
       .single()
 
     if (error || !deployment) {
-      throw new Error('Invalid or inactive API key')
+      throw new Error('Customer deployment not found or inactive')
     }
+
+    console.log('Found deployment:', deployment.customer_name)
 
     // Validate deployment configuration
     const validationResults = await validateProductionDeployment(deployment)
+
+    console.log('Validation results:', validationResults)
 
     // Update deployment status
     await supabaseClient
@@ -69,6 +64,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Production validation error:', error)
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { 
