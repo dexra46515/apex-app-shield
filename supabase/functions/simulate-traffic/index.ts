@@ -112,10 +112,14 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
     for (const result of results) {
       console.log(`🔍 Processing result: ${result.url} - Attack: ${result.isAttack}`);
       
+      const rawPath = new URL(result.url).pathname + new URL(result.url).search;
+      const storedPath = result.isAttack ? `b64:${btoa(rawPath)}` : rawPath;
+      const storedPayload = result.payload ? `b64:${btoa(result.payload)}` : null;
+      
       const requestData = {
         customer_id: customer.id,
         source_ip: '127.0.0.1',
-        request_path: new URL(result.url).pathname + new URL(result.url).search,
+        request_path: storedPath,
         request_method: result.method,
         user_agent: 'SecurityTest-Bot/1.0',
         response_status: result.status,
@@ -123,7 +127,7 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
         action: result.blocked ? 'block' : 'allow',
         threat_type: result.isAttack ? 'security_test' : null,
         threat_score: result.isAttack ? 85 : 10,
-        rule_matches: result.isAttack ? ['SECURITY_TEST_PATTERN'] : []
+        rule_matches: result.isAttack ? ['SECURITY_TEST_PATTERN', 'ENCODED_B64'] : []
       };
       wafRequests.push(requestData);
 
@@ -135,9 +139,9 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
           severity: 'high',
           source_ip: '127.0.0.1',
           request_method: result.method,
-          request_path: new URL(result.url).pathname + new URL(result.url).search,
+          request_path: storedPath,
           threat_type: 'security_test',
-          payload: result.payload,
+          payload: storedPayload,
           blocked: result.blocked,
           response_status: result.status,
           user_agent: 'SecurityTest-Bot/1.0'
