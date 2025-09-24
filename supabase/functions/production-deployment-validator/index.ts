@@ -19,10 +19,16 @@ serve(async (req) => {
 
     const { api_key, customer_id, deployment_config } = await req.json()
 
+    console.log('Received API key:', api_key?.substring(0, 10) + '...')
+    console.log('API key length:', api_key?.length)
+
     // Validate API key format (accept both production and test formats)
     if (!api_key || (api_key.length < 20)) {
+      console.log('API key validation failed: too short or missing')
       throw new Error('Invalid API key format')
     }
+
+    console.log('API key validation passed')
 
     // Get customer deployment
     const { data: deployment, error } = await supabaseClient
