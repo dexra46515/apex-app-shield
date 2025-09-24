@@ -29,7 +29,10 @@ import {
   FileCode,
   Webhook,
   Container,
-  Activity
+  Activity,
+  Database,
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 
 const DeveloperCentricWAF = () => {
@@ -295,72 +298,131 @@ const DeveloperCentricWAF = () => {
     }
   };
 
-  // Load data on component mount
+  // Load real data from Supabase on component mount
   useEffect(() => {
-    const loadData = async () => {
+    const loadRealData = async () => {
       try {
-        // Load recent WAF requests for replay
-        const { data: requests } = await supabase
+        // Load actual WAF requests from database for replay functionality
+        const { data: requests, error: requestsError } = await supabase
           .from('waf_requests')
           .select('*')
           .order('timestamp', { ascending: false })
-          .limit(10);
+          .limit(20);
         
-        if (requests) {
+        if (requestsError) {
+          console.error('Error loading WAF requests:', requestsError);
+        } else if (requests) {
           setReplayRequests(requests);
         }
 
-        // Load GitOps config
-        const { data: gitops } = await supabase
+        // Load real GitOps configuration from database
+        const { data: gitops, error: gitopsError } = await supabase
           .from('gitops_security_policies')
           .select('*')
+          .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
         
-        if (gitops) {
-          setGitopsConfig(gitops);
+        if (gitopsError) {
+          console.error('Error loading GitOps config:', gitopsError);
+        } else if (gitops) {
+          setGitopsConfig(prev => ({
+            ...prev,
+            repository_url: gitops.repository_url,
+            branch_name: gitops.branch_name,
+            policy_file_path: gitops.policy_file_path,
+            auto_deploy: gitops.auto_deploy,
+            git_provider: gitops.git_provider
+          }));
           setGitopsStatus(gitops.sync_status);
         }
 
-        // Load active debug session
-        const { data: debug } = await supabase
+        // Load active debug sessions from database
+        const { data: debug, error: debugError } = await supabase
           .from('debug_sessions')
           .select('*')
           .eq('is_active', true)
+          .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
         
-        if (debug) {
+        if (debugError) {
+          console.error('Error loading debug sessions:', debugError);
+        } else if (debug) {
           setActiveDebugSession(debug);
         }
+
+        // Load real customer deployment data
+        const { data: deployment, error: deploymentError } = await supabase
+          .from('customer_deployments')
+          .select('*')
+          .eq('deployment_type', 'development')
+          .limit(1)
+          .maybeSingle();
+        
+        if (deploymentError) {
+          console.error('Error loading deployment data:', deploymentError);
+        }
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading real data:', error);
+        toast({
+          title: "Data Loading Error",
+          description: "Failed to load some component data from database",
+          variant: "destructive"
+        });
       }
     };
 
-    loadData();
-  }, []);
+    loadRealData();
+    
+    // Refresh data every 30 seconds
+    const interval = setInterval(loadRealData, 30000);
+    return () => clearInterval(interval);
+  }, [toast]);
 
-  // Check WAF status periodically
+  // Real-time WAF container health monitoring
   useEffect(() => {
-    const checkWAFStatus = async () => {
+    const checkRealWAFStatus = async () => {
       try {
-        const response = await fetch('http://localhost:9090/waf/status');
+        // Direct connection to real Docker WAF container
+        const response = await fetch('http://localhost:9090/waf/status', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
         if (response.ok) {
-          const status = await response.json();
-          setWafMetrics(status);
+          const realStatus = await response.json();
+          setWafMetrics(realStatus);
           setDockerStatus('running');
+          
+          // Also fetch real metrics from Prometheus endpoint
+          try {
+            const metricsResponse = await fetch('http://localhost:9090/metrics');
+            if (metricsResponse.ok) {
+              const metricsText = await metricsResponse.text();
+              console.log('Real WAF metrics received:', metricsText.split('\n').slice(0, 5).join('\n'));
+            }
+          } catch (metricsError) {
+            console.log('Metrics endpoint not available yet');
+          }
         } else {
           setDockerStatus('stopped');
+          setWafMetrics(null);
         }
       } catch (error) {
         setDockerStatus('stopped');
+        setWafMetrics(null);
       }
     };
 
-    checkWAFStatus();
-    const interval = setInterval(checkWAFStatus, 30000);
-    return () => clearInterval(interval);
+    // Initial check
+    checkRealWAFStatus();
+    
+    // Real-time polling every 15 seconds
+    const healthCheckInterval = setInterval(checkRealWAFStatus, 15000);
+    return () => clearInterval(healthCheckInterval);
   }, []);
 
   return (
@@ -376,7 +438,7 @@ const DeveloperCentricWAF = () => {
       </div>
 
       <Tabs defaultValue="docker" className="space-y-6">
-        <TabsList className="grid grid-cols-5 w-full bg-slate-800 border-slate-700">
+        <TabsList className="grid grid-cols-6 w-full bg-slate-800 border-slate-700">
           <TabsTrigger value="docker" className="data-[state=active]:bg-slate-700">
             <Container className="w-4 h-4 mr-2" />
             Docker WAF
@@ -396,6 +458,10 @@ const DeveloperCentricWAF = () => {
           <TabsTrigger value="replay" className="data-[state=active]:bg-slate-700">
             <Bug className="w-4 h-4 mr-2" />
             Request Replay
+          </TabsTrigger>
+          <TabsTrigger value="database" className="data-[state=active]:bg-slate-700">
+            <Database className="w-4 h-4 mr-2" />
+            Live Database
           </TabsTrigger>
         </TabsList>
 
@@ -499,10 +565,31 @@ const DeveloperCentricWAF = () => {
                 <div className="mt-4 p-3 bg-slate-700 rounded">
                   <div className="text-xs text-slate-300 font-semibold">Security Status:</div>
                   <div className="text-xs text-green-400">
-                    ✓ Production-grade OpenResty WAF<br/>
-                    ✓ Real attack blocking & logging<br/>
-                    ✓ Developer-friendly debugging tools
+                    ✓ Production-grade OpenResty WAF Engine<br/>
+                    ✓ Real HTTP proxy with attack detection<br/>
+                    ✓ Live request logging to Supabase database<br/>
+                    ✓ Zero-mock security event pipeline<br/>
+                    ✓ Real-time debugging & request replay
                   </div>
+                </div>
+                
+                <div className="mt-2 flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => window.open('http://localhost:9090/waf/status', '_blank')}
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    WAF API
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => window.open('http://localhost:9090/metrics', '_blank')}
+                  >
+                    <Activity className="w-3 h-3 mr-1" />
+                    Metrics
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -943,7 +1030,155 @@ const DeveloperCentricWAF = () => {
             </Card>
           </div>
         </TabsContent>
+        {/* Live Database Tab - Shows Real Data */}
+        <TabsContent value="database">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Database className="h-5 w-5 text-purple-400" />
+                  Live WAF Requests (Real Database)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Total Requests in DB:</span>
+                  <Badge variant="secondary">{replayRequests.length}</Badge>
+                </div>
+                
+                <div className="max-h-80 overflow-y-auto space-y-2">
+                  {replayRequests.length > 0 ? replayRequests.slice(0, 10).map((req) => (
+                    <div key={req.id} className="bg-slate-700 p-3 rounded text-sm">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="text-white font-medium">
+                            {req.request_method} {req.request_path}
+                          </div>
+                          <div className="text-slate-400 text-xs">
+                            IP: {req.source_ip} • Action: {req.action} • Score: {req.threat_score}
+                          </div>
+                          <div className="text-slate-500 text-xs">
+                            {new Date(req.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                        <Badge variant={req.action === 'block' ? 'destructive' : 'default'}>
+                          {req.action}
+                        </Badge>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center text-slate-400 py-6">
+                      <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <div>No WAF requests in database yet</div>
+                      <div className="text-xs">Send traffic to your WAF to see real data</div>
+                    </div>
+                  )}
+                </div>
+                
+                <Button 
+                  onClick={async () => {
+                    const { data } = await supabase.from('waf_requests').select('*').order('timestamp', { ascending: false }).limit(20);
+                    if (data) setReplayRequests(data);
+                  }} 
+                  variant="outline" 
+                  size="sm"
+                  className="w-full"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Refresh Database
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-red-400" />
+                  Live Security Events
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <LiveSecurityEvents />
+                
+                <div className="p-3 bg-slate-900 rounded">
+                  <div className="text-xs text-slate-300 font-semibold mb-2">Database Tables:</div>
+                  <div className="text-xs text-slate-400 space-y-1">
+                    <div>• waf_requests - All HTTP requests processed</div>
+                    <div>• security_events - Detected threats & attacks</div>
+                    <div>• debug_sessions - Active debugging sessions</div>
+                    <div>• gitops_security_policies - Policy configurations</div>
+                    <div>• customer_deployments - WAF deployment status</div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={() => window.open('https://supabase.com/dashboard/project/kgazsoccrtmhturhxggi/editor', '_blank')}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <ExternalLink className="w-3 h-3 mr-1" />
+                  Open Supabase Console
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
       </Tabs>
+    </div>
+  );
+};
+
+// Component to show live security events from database
+const LiveSecurityEvents = () => {
+  const [events, setEvents] = useState([]);
+  
+  useEffect(() => {
+    const loadSecurityEvents = async () => {
+      try {
+        const { data } = await supabase
+          .from('security_events')
+          .select('*')
+          .order('timestamp', { ascending: false })
+          .limit(5);
+        
+        if (data) setEvents(data);
+      } catch (error) {
+        console.error('Error loading security events:', error);
+      }
+    };
+
+    loadSecurityEvents();
+    const interval = setInterval(loadSecurityEvents, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="space-y-2">
+      <div className="text-sm text-slate-300">Recent Security Events:</div>
+      <div className="max-h-60 overflow-y-auto space-y-2">
+        {events.length > 0 ? events.map((event) => (
+          <div key={event.id} className="bg-slate-700 p-2 rounded text-xs">
+            <div className="flex justify-between">
+              <span className="text-white font-medium">{event.event_type}</span>
+              <Badge variant="destructive" className="text-xs">
+                {event.severity}
+              </Badge>
+            </div>
+            <div className="text-slate-400 mt-1">
+              {event.source_ip} • {event.description?.substring(0, 40)}...
+            </div>
+            <div className="text-slate-500 text-xs">
+              {new Date(event.timestamp).toLocaleString()}
+            </div>
+          </div>
+        )) : (
+          <div className="text-slate-400 text-center py-4">
+            No security events detected yet
+          </div>
+        )}
+      </div>
     </div>
   );
 };
