@@ -4,7 +4,7 @@ import SecurityDashboard from '@/components/SecurityDashboard';
 import AdvancedSecurityDashboard from '@/components/AdvancedSecurityDashboard';
 import WAFManagement from '@/components/WAFManagement';
 import CustomerOnboarding from '@/components/CustomerOnboarding';
-import EnhancedCustomerOnboarding from '@/components/EnhancedCustomerOnboarding';
+import OnboardingFlow from '@/components/OnboardingFlow';
 import HardwareTrustDashboard from '@/components/HardwareTrustDashboard';
 import ManagementCompliance from '@/components/ManagementCompliance';
 import DeploymentModels from '@/components/DeploymentModels';
@@ -78,7 +78,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="onboarding">
-            <EnhancedCustomerOnboarding />
+            <OnboardingFlow />
           </TabsContent>
         </Tabs>
       </div>
