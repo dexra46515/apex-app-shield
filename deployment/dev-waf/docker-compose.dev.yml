@@ -8,11 +8,11 @@ services:
     ports:
       - "8080:80"     # Main WAF proxy
       - "9090:9090"   # WAF management/metrics
-    volumes:
-      # Mount your custom policies directory
-      - ./policies:/usr/local/openresty/waf/policies:ro
-      # Mount logs for debugging
-      - ./logs:/usr/local/openresty/waf/logs
+    # volumes:
+      # # Mount your custom policies directory
+      # - ./policies:/usr/local/openresty/waf/policies:ro
+      # # Mount logs for debugging
+      # - ./logs:/usr/local/openresty/waf/logs
     environment:
       - WAF_DEBUG=true
       - WAF_ENABLE_REPLAY=true
@@ -34,8 +34,8 @@ services:
     container_name: dev-app
     ports:
       - "3000:80"
-    volumes:
-      - ./example-app:/usr/share/nginx/html:ro
+    # volumes:
+      # - ./example-app:/usr/share/nginx/html:ro
     networks:
       - waf-dev-network
 
@@ -45,9 +45,9 @@ services:
     container_name: waf-prometheus
     ports:
       - "9091:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
+    # volumes:
+      # - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -64,10 +64,10 @@ services:
     container_name: waf-grafana
     ports:
       - "3001:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    # volumes:
+      # - grafana-data:/var/lib/grafana
+      # - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      # - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
@@ -77,7 +77,3 @@ services:
 networks:
   waf-dev-network:
     driver: bridge
-
-volumes:
-  prometheus-data:
-  grafana-data:
