@@ -26,7 +26,7 @@ interface SecurityEventPayload {
 
 interface ThreatAnalysis {
   threat_type: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: string;
   confidence: number;
   rule_matches: string[];
   should_block: boolean;
@@ -125,7 +125,7 @@ serve(async (req) => {
                 requests_per_second: threatAnalysis.severity === 'high' ? 200 : 50,
                 unique_sources: threatAnalysis.severity === 'high' ? 100 : 25,
                 average_response_time: eventData.response_status === 200 ? 150 : 500,
-                error_rate: eventData.response_status >= 400 ? 0.3 : 0.05,
+                error_rate: (eventData.response_status || 200) >= 400 ? 0.3 : 0.05,
                 threat_indicators: threatAnalysis.rule_matches
               },
               prediction_window: '1h'
@@ -228,7 +228,7 @@ serve(async (req) => {
         try {
           await supabaseClient.functions.invoke('ttp-pattern-collector', {
             body: {
-              honeypot_interaction_id: honeypotCheck.interaction_id || eventRecord.id,
+              honeypot_interaction_id: (honeypotCheck as any).interaction_id || eventRecord.id,
               attack_data: {
                 source_ip: eventData.source_ip,
                 request_path: eventData.request_path,
@@ -237,7 +237,7 @@ serve(async (req) => {
                 request_method: eventData.request_method,
                 timestamp: new Date().toISOString(),
                 request_headers: eventData.request_headers,
-                threat_score: threatAnalysis.score || 0
+                threat_score: (threatAnalysis as any).score || 0
               }
             }
           });
@@ -302,7 +302,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Advanced WAF Monitor Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
@@ -310,7 +310,7 @@ serve(async (req) => {
 
 // Enhanced threat analysis with machine learning patterns
 async function analyzeRequest(eventData: SecurityEventPayload, supabaseClient: any): Promise<ThreatAnalysis> {
-  const analysis: ThreatAnalysis = {
+  const analysis: any = {
     threat_type: 'unknown',
     severity: 'low',
     confidence: 0,
@@ -335,7 +335,7 @@ async function analyzeRequest(eventData: SecurityEventPayload, supabaseClient: a
       analysis.severity = owaspAnalysis.severity;
       analysis.confidence = owaspAnalysis.confidence;
       analysis.rule_matches.push(...owaspAnalysis.rules);
-      analysis.should_block = owaspAnalysis.severity === 'high' || owaspAnalysis.severity === 'critical';
+      analysis.should_block = (owaspAnalysis as any).severity === 'high' || (owaspAnalysis as any).severity === 'critical';
       analysis.threat_detected = true;
       analysis.recommendations.push(`Block ${owaspAnalysis.type} attempts from ${eventData.source_ip}`);
     }
@@ -369,7 +369,7 @@ async function analyzeRequest(eventData: SecurityEventPayload, supabaseClient: a
       analysis.threat_type = 'malicious_ip';
       analysis.severity = reputationAnalysis.severity;
       analysis.confidence = Math.max(analysis.confidence, reputationAnalysis.confidence);
-      analysis.should_block = reputationAnalysis.severity === 'critical';
+      analysis.should_block = (reputationAnalysis as any).severity === 'critical';
       analysis.threat_detected = true;
       analysis.rule_matches.push('ip_reputation_low');
       analysis.recommendations.push('Block or monitor IP from threat intelligence feeds');
@@ -495,7 +495,7 @@ async function checkDeviceAttestation(eventData: SecurityEventPayload, supabaseC
 
 // API schema validation
 async function validateAPISchema(eventData: SecurityEventPayload, supabaseClient: any) {
-  const result = { violations: 0, violation_details: [] };
+  const result: any = { violations: 0, violation_details: [] };
 
   try {
     const { data: schemas } = await supabaseClient
@@ -711,7 +711,7 @@ async function performAIAnomalyDetection(eventData: SecurityEventPayload, supaba
 
 // Adaptive security rules engine
 async function checkAdaptiveRules(eventData: SecurityEventPayload, supabaseClient: any) {
-  const result = { rules_triggered: 0, actions_taken: [] };
+  const result: any = { rules_triggered: 0, actions_taken: [] };
 
   try {
     const { data: adaptiveRules } = await supabaseClient
@@ -758,7 +758,7 @@ async function checkAdaptiveRules(eventData: SecurityEventPayload, supabaseClien
 
 // Advanced OWASP threat detection (CSRF, SSRF, RCE, XXE, etc.)
 async function checkAdvancedOWASPThreats(eventData: SecurityEventPayload, supabaseClient: any) {
-  const result = { threats_detected: [], severity: 'low' };
+  const result: any = { threats_detected: [], severity: 'low' };
 
   const payload = eventData.payload || '';
   const path = eventData.request_path || '';
@@ -844,12 +844,12 @@ async function logToSIEM(eventData: any, supabaseClient: any) {
 
 // ... keep existing helper functions for OWASP, bot detection, rate limiting, IP reputation, alerts, etc.
 function analyzeOWASPThreats(eventData: SecurityEventPayload) {
-  const result = {
+  const result: any = {
     detected: false,
     type: 'clean',
-    severity: 'low' as const,
+    severity: 'low',
     confidence: 0,
-    rules: [] as string[]
+    rules: []
   };
 
   const payload = eventData.payload || '';
@@ -906,11 +906,11 @@ function analyzeOWASPThreats(eventData: SecurityEventPayload) {
 }
 
 function analyzeBotBehavior(eventData: SecurityEventPayload) {
-  const result = {
+  const result: any = {
     detected: false,
-    severity: 'low' as const,
+    severity: 'low',
     confidence: 0,
-    rules: [] as string[]
+    rules: []
   };
 
   const userAgent = eventData.user_agent || '';
@@ -966,9 +966,9 @@ async function checkRateLimit(sourceIP: string, supabaseClient: any) {
 }
 
 async function checkIPReputation(sourceIP: string, supabaseClient: any) {
-  const result = {
+  const result: any = {
     risky: false,
-    severity: 'low' as const,
+    severity: 'low',
     confidence: 0,
     reputation_score: 50
   };

@@ -21,6 +21,7 @@ interface SecurityRule {
   name: string;
   enabled: boolean;
   severity: string;
+  category?: string;
   conditions: {
     fields?: string[];
     patterns?: string[];
@@ -218,7 +219,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         action: 'allow', 
         reason: 'WAF processing error',
-        error: error.message 
+        error: error instanceof Error ? error.message : 'Unknown error' 
       }),
       { 
         status: 500,

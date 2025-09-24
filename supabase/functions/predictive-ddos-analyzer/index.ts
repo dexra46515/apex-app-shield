@@ -152,7 +152,7 @@ async function generateDDoSPredictions(trafficData: any, supabase: any) {
     risk_factors: identifyRiskFactors(trafficData, historicalData || []),
     mitigation_recommendations: generateMitigationRecommendations(prediction),
     early_indicators: identifyEarlyIndicators(trafficData),
-    source_patterns: analyzeSourcePatterns(trafficData.source_ips || [])
+    source_patterns: analyzeSourcePatternsForDDoS(trafficData.source_ips || [])
   };
 }
 
@@ -447,4 +447,22 @@ function calculateNetworkCongestion(trafficData: any): number {
   const currentLoad = trafficData.requests_per_second || 0;
   const capacity = trafficData.max_capacity || 10000;
   return currentLoad / capacity;
+}
+
+function analyzeSourcePatternsForDDoS(sourceIPs: string[]): any {
+  const ipCounts: Record<string, number> = {};
+  const subnetCounts: Record<string, number> = {};
+  
+  sourceIPs.forEach(ip => {
+    ipCounts[ip] = (ipCounts[ip] || 0) + 1;
+    const subnet = ip.split('.').slice(0, 3).join('.');
+    subnetCounts[subnet] = (subnetCounts[subnet] || 0) + 1;
+  });
+  
+  return {
+    unique_sources: Object.keys(ipCounts).length,
+    top_source_concentration: Math.max(...Object.values(ipCounts)) / sourceIPs.length,
+    subnet_diversity: Object.keys(subnetCounts).length,
+    geographic_spread: calculateGeographicSpread(sourceIPs)
+  };
 }

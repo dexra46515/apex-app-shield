@@ -57,7 +57,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       }),
       {
@@ -78,7 +78,7 @@ async function generateComplianceProof(dataset: string, privateInputs: string[])
   
   return {
     proof_id: `compliance-${Date.now()}`,
-    circuit_hash: generateHash(circuit),
+    circuit_hash: generateHash(JSON.stringify(circuit)),
     proof_data: proof,
     public_outputs: {
       compliance_score: Math.floor(Math.random() * 10) + 90, // 90-100

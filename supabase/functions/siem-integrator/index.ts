@@ -72,7 +72,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('SIEM Integrator Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
@@ -125,7 +125,7 @@ async function exportEventsToSIEM(supabase: any, config: SIEMConfig, batchSize: 
         }
       } catch (exportError) {
         console.error(`Failed to export event ${event.id}:`, exportError);
-        exportErrors.push({ event_id: event.id, error: exportError.message });
+        exportErrors.push({ event_id: event.id, error: exportError instanceof Error ? exportError.message : 'Unknown error' });
       }
     }
 
@@ -327,7 +327,7 @@ async function testSIEMConnection(config: SIEMConfig) {
       JSON.stringify({
         success: false,
         message: 'SIEM connection test failed',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -358,7 +358,7 @@ async function configureSIEMIntegration(supabase: any, config: SIEMConfig) {
       JSON.stringify({
         success: false,
         message: 'Failed to configure SIEM integration',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

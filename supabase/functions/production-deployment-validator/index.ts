@@ -64,7 +64,7 @@ serve(async (req) => {
 
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 
@@ -97,10 +97,15 @@ async function validateProductionDeployment(deployment: any) {
 
 async function validateDomain(domain: string) {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const response = await fetch(`https://${domain}`, { 
       method: 'HEAD',
-      timeout: 5000 
-    })
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     
     return {
       score: response.ok ? 100 : 50,
@@ -118,7 +123,7 @@ async function validateDomain(domain: string) {
         dns_resolves: false,
         ssl_valid: false,
         response_code: null,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       }
     }
   }

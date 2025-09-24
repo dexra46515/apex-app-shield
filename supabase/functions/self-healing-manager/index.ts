@@ -56,7 +56,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       }),
       {
@@ -86,7 +86,7 @@ async function detectExploit(signature: any) {
 
   if (isExploit) {
     console.log('Exploit detected! Initiating automatic healing...');
-    await triggerSelfHealing('exploit_detected', null, analysis);
+    await triggerSelfHealing('exploit_detected', undefined, analysis);
   }
 
   return analysis;

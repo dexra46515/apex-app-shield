@@ -134,7 +134,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('TTP Pattern Collector Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
@@ -144,12 +144,16 @@ serve(async (req) => {
 });
 
 async function analyzeTTPPatterns(attackData: any) {
-  const patterns = {
+  const patterns: any = {
     primary_tactic: 'reconnaissance',
     primary_technique: 'Active Scanning',
     technique_id: 'T1595',
     pattern_details: {},
-    payload_analysis: {},
+    payload_analysis: {
+      sql_injection: false,
+      command_injection: false,
+      xss_attempt: false
+    },
     behavioral_signature: {},
     persistence_methods: null,
     lateral_movement: null,
@@ -321,7 +325,7 @@ function identifyAttackTools(attackData: any): string[] {
 }
 
 function constructAttackTimeline(attackData: any) {
-  const timeline = {
+  const timeline: any = {
     start_time: attackData.timestamp || new Date().toISOString(),
     phases: [],
     duration: 0,

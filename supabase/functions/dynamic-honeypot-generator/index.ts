@@ -594,7 +594,12 @@ function analyzeAttackPatterns(attacks: any[]) {
     attackTypes[type] = (attackTypes[type] || 0) + 1;
   });
   
-  const patterns: string[] = [];
+  const patterns: Array<{
+    attack_type: string;
+    common_path: string;
+    frequency: number;
+    effectiveness_prediction: number;
+  }> = [];
   
   // Find common paths
   Object.entries(pathCounts)
