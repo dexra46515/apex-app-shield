@@ -91,81 +91,44 @@ const AdvancedSecurityDashboard = () => {
 
   const loadAdvancedStats = async () => {
     try {
-      // AI Anomaly Detections
-      const { count: aiCount } = await supabase
-        .from('ai_anomaly_detections')
-        .select('*', { count: 'exact', head: true });
-
-      // Honeypot Interactions
-      const { count: honeypotCount } = await supabase
-        .from('honeypot_interactions')
-        .select('*', { count: 'exact', head: true });
-
-      // Load real honeypots data
-      const { data: honeypotsData, error: honeypotsError } = await supabase
-        .from('honeypots')
-        .select('*')
-        .eq('is_active', true);
+      // Execute all queries in parallel for much faster loading
+      const [
+        { count: aiCount },
+        { count: honeypotCount },
+        { data: honeypotsData, error: honeypotsError },
+        { data: interactionsData, error: interactionsError },
+        { count: adaptiveCount },
+        { count: schemaCount },
+        { count: geoCount },
+        { count: siemCount },
+        { count: tlsCount },
+        { count: flowCount },
+        { count: ddosCount },
+        { count: dynamicHoneypotCount },
+        { count: ttpCount },
+        { count: ruleDeploymentCount }
+      ] = await Promise.all([
+        supabase.from('ai_anomaly_detections').select('*', { count: 'exact', head: true }),
+        supabase.from('honeypot_interactions').select('*', { count: 'exact', head: true }),
+        supabase.from('honeypots').select('*').eq('is_active', true),
+        supabase.from('honeypot_interactions').select('*').order('created_at', { ascending: false }).limit(10),
+        supabase.from('adaptive_rules').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('schema_violations').select('*', { count: 'exact', head: true }),
+        supabase.from('geo_restrictions').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('siem_events').select('*', { count: 'exact', head: true }),
+        supabase.from('tls_fingerprints').select('*', { count: 'exact', head: true }),
+        supabase.from('encrypted_flow_patterns').select('*', { count: 'exact', head: true }),
+        supabase.from('ddos_predictions').select('*', { count: 'exact', head: true }),
+        supabase.from('dynamic_honeypots').select('*', { count: 'exact', head: true }),
+        supabase.from('attack_ttp_patterns').select('*', { count: 'exact', head: true }),
+        supabase.from('rule_deployments').select('*', { count: 'exact', head: true })
+      ]);
 
       if (honeypotsError) console.error('Error loading honeypots:', honeypotsError);
       else setHoneypots(honeypotsData || []);
 
-      // Load recent honeypot interactions
-      const { data: interactionsData, error: interactionsError } = await supabase
-        .from('honeypot_interactions')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
       if (interactionsError) console.error('Error loading interactions:', interactionsError);
       else setHoneypotInteractions(interactionsData || []);
-
-      // Adaptive Rules
-      const { count: adaptiveCount } = await supabase
-        .from('adaptive_rules')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
-
-      // Schema Violations
-      const { count: schemaCount } = await supabase
-        .from('schema_violations')
-        .select('*', { count: 'exact', head: true });
-
-      // Geo Restrictions
-      const { count: geoCount } = await supabase
-        .from('geo_restrictions')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
-
-      // SIEM Events
-      const { count: siemCount } = await supabase
-        .from('siem_events')
-        .select('*', { count: 'exact', head: true });
-
-      // Advanced Differentiators - New tables
-      const { count: tlsCount } = await supabase
-        .from('tls_fingerprints')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: flowCount } = await supabase
-        .from('encrypted_flow_patterns')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: ddosCount } = await supabase
-        .from('ddos_predictions')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: dynamicHoneypotCount } = await supabase
-        .from('dynamic_honeypots')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: ttpCount } = await supabase
-        .from('attack_ttp_patterns')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: ruleDeploymentCount } = await supabase
-        .from('rule_deployments')
-        .select('*', { count: 'exact', head: true });
 
       setStats({
         aiAnomalies: aiCount || 0,
