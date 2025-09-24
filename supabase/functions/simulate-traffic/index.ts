@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -177,6 +178,11 @@ serve(async (req) => {
 
       const blockedCount = results.filter(r => r.blocked).length;
       
+      // Store events in database and trigger security analysis (background task)
+      processSecurityEvents(results, targetUrl).catch(error => 
+        console.error('Background processing failed:', error)
+      );
+      
       return new Response(
         JSON.stringify({
           success: true,
@@ -216,3 +222,169 @@ serve(async (req) => {
     );
   }
 });
+
+// Background task to process security events and trigger analysis
+async function processSecurityEvents(results: any[], targetUrl: string) {
+  try {
+    console.log('Processing security events in background...');
+    
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Get or create customer deployment
+    const domain = new URL(targetUrl).hostname;
+    let { data: customer } = await supabase
+      .from('customer_deployments')
+      .select('*')
+      .eq('domain', domain)
+      .single();
+
+    if (!customer) {
+      const { data: newCustomer } = await supabase
+        .from('customer_deployments')
+        .insert({
+          customer_name: `Auto-discovered: ${domain}`,
+          domain: domain,
+          deployment_type: 'external_test'
+        })
+        .select()
+        .single();
+      customer = newCustomer;
+    }
+
+    if (!customer) {
+      console.error('Failed to create/find customer deployment');
+      return;
+    }
+
+    // Store WAF requests and security events
+    const wafRequests = [];
+    const securityEvents = [];
+
+    for (const result of results) {
+      const requestData = {
+        customer_id: customer.id,
+        source_ip: '127.0.0.1', // Simulator IP
+        request_path: new URL(result.url).pathname + new URL(result.url).search,
+        request_method: result.method,
+        user_agent: 'SecurityTest-Bot/1.0',
+        response_status: result.status,
+        processing_time_ms: result.responseTime,
+        action: result.blocked ? 'block' : 'allow',
+        threat_type: result.isAttack ? 'security_test' : null,
+        threat_score: result.isAttack ? 85 : 10,
+        rule_matches: result.isAttack ? ['SECURITY_TEST_PATTERN'] : []
+      };
+      wafRequests.push(requestData);
+
+      // Create security event for attacks
+      if (result.isAttack) {
+        securityEvents.push({
+          event_type: 'attack_simulation',
+          severity: 'high',
+          source_ip: '127.0.0.1',
+          request_method: result.method,
+          request_path: new URL(result.url).pathname + new URL(result.url).search,
+          threat_type: 'security_test',
+          payload: result.payload,
+          blocked: result.blocked,
+          response_status: result.status,
+          user_agent: 'SecurityTest-Bot/1.0'
+        });
+      }
+    }
+
+    // Insert WAF requests
+    if (wafRequests.length > 0) {
+      const { error: wafError } = await supabase
+        .from('waf_requests')
+        .insert(wafRequests);
+      
+      if (wafError) {
+        console.error('Error inserting WAF requests:', wafError);
+      } else {
+        console.log(`Stored ${wafRequests.length} WAF requests`);
+      }
+    }
+
+    // Insert security events
+    if (securityEvents.length > 0) {
+      const { error: eventError } = await supabase
+        .from('security_events')
+        .insert(securityEvents);
+      
+      if (eventError) {
+        console.error('Error inserting security events:', eventError);
+      } else {
+        console.log(`Stored ${securityEvents.length} security events`);
+      }
+    }
+
+    // Trigger AI anomaly detection for each attack
+    for (const event of securityEvents) {
+      try {
+        const { error: aiError } = await supabase.functions.invoke('ai-anomaly-detector', {
+          body: {
+            session_id: `sim_${Date.now()}`,
+            source_ip: event.source_ip,
+            behavior_data: {
+              request_path: event.request_path,
+              method: event.request_method,
+              payload: event.payload,
+              user_agent: event.user_agent,
+              threat_type: event.threat_type
+            }
+          }
+        });
+        
+        if (aiError) {
+          console.error('AI anomaly detection error:', aiError);
+        }
+      } catch (error) {
+        console.error('Failed to trigger AI analysis:', error);
+      }
+    }
+
+    // Trigger SIEM integration
+    try {
+      const { error: siemError } = await supabase.functions.invoke('siem-integrator', {
+        body: {
+          events: securityEvents,
+          event_source: 'traffic_simulator',
+          correlation_id: `sim_${Date.now()}`
+        }
+      });
+      
+      if (siemError) {
+        console.error('SIEM integration error:', siemError);
+      }
+    } catch (error) {
+      console.error('Failed to trigger SIEM integration:', error);
+    }
+
+    // Trigger compliance reporting
+    try {
+      const { error: complianceError } = await supabase.functions.invoke('compliance-reporter', {
+        body: {
+          event_count: results.length,
+          attack_count: securityEvents.length,
+          domain: domain,
+          test_run: true
+        }
+      });
+      
+      if (complianceError) {
+        console.error('Compliance reporting error:', complianceError);
+      }
+    } catch (error) {
+      console.error('Failed to trigger compliance reporting:', error);
+    }
+
+    console.log('Security event processing completed');
+    
+  } catch (error) {
+    console.error('Background processing error:', error);
+  }
+}
