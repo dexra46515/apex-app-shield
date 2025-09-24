@@ -69,7 +69,7 @@ serve(async (req) => {
     console.error('Hardware trust verification error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         success: false 
       }),
       { 
@@ -88,7 +88,7 @@ async function verifyDevicePosture(token: DevicePostureToken, supabase: any) {
     const verification = await verifyAttestationJWT(token.attestation_jwt);
     
     // Validate TPM Quote if present
-    const tpmValid = token.tpm_quote ? await validateTPMQuote(token.tmp_quote) : false;
+    const tpmValid = token.tpm_quote ? await validateTPMQuote(token.tpm_quote!) : false;
     
     // Validate TEE Attestation if present  
     const teeValid = token.tee_attestation ? await validateTEEAttestation(token.tee_attestation) : false;
@@ -96,11 +96,11 @@ async function verifyDevicePosture(token: DevicePostureToken, supabase: any) {
     // Calculate trust score based on hardware features
     const trustScore = calculateHardwareTrustScore({
       jwt_valid: verification.valid,
-      tpm_present: !!token.tmp_quote,
+      tmp_present: !!token.tpm_quote,
       tee_present: !!token.tee_attestation,
       secure_boot: token.platform_configuration?.secure_boot || false,
       measured_boot: token.platform_configuration?.measured_boot || false,
-      tpm_valid: tmpValid,
+      tpm_valid: tpmValid,
       tee_valid: teeValid
     });
     
@@ -123,7 +123,7 @@ async function verifyDevicePosture(token: DevicePostureToken, supabase: any) {
         security_features: {
           tpm_present: !!token.tpm_quote,
           tee_present: !!token.tee_attestation,
-          hardware_verified: verification.valid && (tmpValid || teeValid),
+          hardware_verified: verification.valid && (tpmValid || teeValid),
           attestation_chain_valid: verification.chain_valid
         },
         verification_status: verification.valid ? 'verified' : 'failed',
@@ -149,7 +149,7 @@ async function verifyDevicePosture(token: DevicePostureToken, supabase: any) {
           trust_level: trustLevel,
           trust_score: trustScore,
           hardware_verified: verification.valid,
-          tpm_validated: tmpValid,
+          tpm_validated: tpmValid,
           tee_validated: teeValid,
           access_granted: trustLevel === 'trusted' || trustLevel === 'conditional',
           restrictions: trustLevel === 'conditional' ? ['sensitive_api_blocked'] : []
@@ -221,7 +221,7 @@ async function createHardwareSignedLog(logData: any, supabase: any) {
         hardware_signature: signedLog.hardware_signature,
         chain_hash: signedLog.chain_hash,
         previous_hash: previousHash,
-        tpm_pcr_values: signedLog.tmp_pcr_values,
+        tpm_pcr_values: signedLog.tpm_pcr_values,
         integrity_verified: true
       })
       .select()

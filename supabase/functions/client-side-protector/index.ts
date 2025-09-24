@@ -57,7 +57,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       }),
       {
@@ -155,7 +155,13 @@ async function monitorDOMChanges(pageContext: any) {
   console.log('Monitoring DOM changes for malicious modifications');
   
   const monitoringResults = {
-    suspicious_modifications: [],
+    suspicious_modifications: [] as Array<{
+      pattern: string;
+      severity: string;
+      location: string;
+      timestamp: string;
+      mitigation: string;
+    }>,
     form_tampering: false,
     script_injection: false,
     event_listener_hijacking: false,
@@ -317,7 +323,7 @@ async function analyzeFormSecurity(forms: any[]) {
 }
 
 async function analyzeMagecartIndicator(indicator: string, pageContext: any) {
-  const detectionProbability = {
+  const detectionProbability: Record<string, number> = {
     'payment_form_skimming': 0.02,
     'credit_card_harvesting': 0.01,
     'suspicious_event_listeners': 0.05,
@@ -445,7 +451,7 @@ function generateDOMLocation() {
 }
 
 function generateMagecartEvidence(indicator: string) {
-  const evidence = {
+  const evidence: Record<string, string> = {
     'payment_form_skimming': 'Unauthorized event listeners on payment form fields',
     'credit_card_harvesting': 'Credit card data being sent to external domain',
     'suspicious_event_listeners': 'Multiple hidden event listeners on form inputs',
@@ -457,6 +463,6 @@ function generateMagecartEvidence(indicator: string) {
 }
 
 function getRiskScore(riskLevel: string) {
-  const scores = { low: 25, medium: 50, high: 75, critical: 100 };
+  const scores: Record<string, number> = { low: 25, medium: 50, high: 75, critical: 100 };
   return scores[riskLevel] || 0;
 }

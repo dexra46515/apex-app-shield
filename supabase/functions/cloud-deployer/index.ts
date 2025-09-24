@@ -55,7 +55,8 @@ serve(async (req) => {
     if (deployError) throw deployError;
 
     // Start background deployment
-    EdgeRuntime.waitUntil(deployToCloud(deployment.id, model, cloudProvider, credentials.encrypted_credentials, deploymentConfig));
+    // Start async deployment process
+    deployToCloud(deployment.id, model, cloudProvider, credentials.encrypted_credentials, deploymentConfig).catch(console.error);
 
     return new Response(
       JSON.stringify({
@@ -77,7 +78,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         details: 'Failed to start cloud deployment'
       }),
       {
@@ -138,7 +139,7 @@ async function deployToCloud(deploymentId: string, model: string, provider: stri
       .from('live_deployments')
       .update({
         status: 'failed',
-        deployment_logs: { error: error.message, timestamp: new Date().toISOString() }
+        deployment_logs: { error: error instanceof Error ? error.message : 'Unknown error', timestamp: new Date().toISOString() }
       })
       .eq('id', deploymentId);
   }
