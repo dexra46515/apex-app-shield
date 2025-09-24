@@ -163,7 +163,7 @@ async function verifyDevicePosture(token: DevicePostureToken, supabase: any) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         verification_result: {
           device_fingerprint: token.device_fingerprint,
           trust_level: 'untrusted',
@@ -256,7 +256,7 @@ async function createHardwareSignedLog(logData: any, supabase: any) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

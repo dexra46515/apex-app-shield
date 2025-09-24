@@ -112,14 +112,14 @@ serve(async (req) => {
           }
 
           // Set timeout manually since AbortSignal.timeout might not be available
-          let timeoutId: number;
+          let timeoutId: number | undefined;
           
           timeoutId = setTimeout(() => {
             throw new Error('Request timeout (10s)');
           }, 10000);
           
           const response = await fetch(fullUrl, requestOptions);
-          clearTimeout(timeoutId);
+          if (timeoutId) clearTimeout(timeoutId);
           
           const responseTime = Date.now() - startTime;
           const responseText = await response.text().catch(() => 'Unable to read response body');
@@ -153,7 +153,7 @@ serve(async (req) => {
           
           const result = {
             url: fullUrl,
-            method: requestOptions.method || 'GET',
+            method: payload ? 'POST' : 'GET',
             status: 0,
             statusText: 'Request Failed',
             responseTime,

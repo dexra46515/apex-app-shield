@@ -41,8 +41,8 @@ serve(async (req) => {
         deployment_id: `deploy-${Date.now()}`,
         model: model,
         status: 'deployed',
-        endpoints: deploymentResult.endpoints,
-        monitoring: deploymentResult.monitoring,
+        endpoints: (deploymentResult as any).endpoints || {},
+        monitoring: (deploymentResult as any).monitoring || {},
         message: `${model} deployment completed successfully`
       }),
       {
@@ -57,7 +57,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         details: 'Failed to orchestrate deployment'
       }),
       {

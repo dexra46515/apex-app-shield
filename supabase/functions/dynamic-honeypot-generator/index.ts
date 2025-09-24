@@ -73,7 +73,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Dynamic Honeypot Generator Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
@@ -594,7 +594,7 @@ function analyzeAttackPatterns(attacks: any[]) {
     attackTypes[type] = (attackTypes[type] || 0) + 1;
   });
   
-  const patterns = [];
+  const patterns: string[] = [];
   
   // Find common paths
   Object.entries(pathCounts)

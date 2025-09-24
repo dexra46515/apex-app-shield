@@ -762,14 +762,14 @@ data "aws_availability_zones" "available" {
 }
 
 # Providers for multi-region
-${regions.map(region => `
+${regions.map((region: string) => `
 provider "aws" {
   alias  = "${region.replace(/-/g, '_')}"
   region = "${region}"
 }`).join('\n')}
 
 # WAF instances in each region
-${regions.map(region => `
+${regions.map((region: string) => `
 module "waf_${region.replace(/-/g, '_')}" {
   source = "./modules/waf-instance"
   
@@ -800,7 +800,7 @@ resource "aws_route53_zone" "main" {
   }
 }
 
-${regions.map(region => `
+${regions.map((region: string) => `
 resource "aws_route53_record" "waf_${region.replace(/-/g, '_')}" {
   zone_id = aws_route53_zone.main.zone_id
   name    = "${region}.waf.\${var.domain}"
@@ -831,7 +831,7 @@ resource "aws_route53_health_check" "waf_health" {
 output "waf_endpoints" {
   description = "WAF endpoint URLs"
   value = {
-${regions.map(region => `    ${region} = "https://${region}.waf.\${var.domain}"`).join('\n')}
+${regions.map((region: string) => `    ${region} = "https://${region}.waf.\${var.domain}"`).join('\n')}
   }
 }
 
@@ -843,7 +843,7 @@ output "management_dashboard" {
 output "api_endpoints" {
   description = "API endpoints for each region"
   value = {
-${regions.map(region => `    ${region} = module.waf_${region.replace(/-/g, '_')}.api_endpoint`).join('\n')}
+${regions.map((region: string) => `    ${region} = module.waf_${region.replace(/-/g, '_')}.api_endpoint`).join('\n')}
   }
 }`;
 
