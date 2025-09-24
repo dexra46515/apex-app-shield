@@ -19,7 +19,7 @@ serve(async (req) => {
 
     const { api_key, customer_id, deployment_config } = await req.json()
 
-    console.log('HANDLER VERSION: v3-detailed-errors')
+    console.log('HANDLER VERSION: v4-REAL-VALIDATION-NO-MOCKS')
     console.log('Production validation started for customer:', customer_id)
 
     // Get customer deployment by ID (not API key)
@@ -72,6 +72,7 @@ serve(async (req) => {
         domain: deployment.domain,
         validation_results: validationResults,
         production_ready: validationResults.overall_score >= 80,
+        version_info: "v4-REAL-VALIDATION-NO-MOCKS",
         next_steps: generateNextSteps(validationResults)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
