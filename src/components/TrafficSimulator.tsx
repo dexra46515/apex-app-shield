@@ -28,6 +28,7 @@ const TrafficSimulator = () => {
     progress: 0,
   });
   const [simulationConfig, setSimulationConfig] = useState({
+    targetUrl: '',
     pattern: 'mixed',
     count: 50,
     interval: 1000,
@@ -47,6 +48,7 @@ const TrafficSimulator = () => {
 
       const { data, error } = await supabase.functions.invoke('simulate-traffic', {
         body: {
+          targetUrl: simulationConfig.targetUrl,
           pattern: simulationConfig.pattern,
           count: simulationConfig.count
         }
@@ -131,7 +133,18 @@ const TrafficSimulator = () => {
       
       <CardContent className="space-y-6">
         {/* Configuration */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="targetUrl">Target URL</Label>
+            <Input
+              id="targetUrl"
+              placeholder="https://procurement.dexra.cloud"
+              value={simulationConfig.targetUrl}
+              onChange={(e) => 
+                setSimulationConfig(prev => ({ ...prev, targetUrl: e.target.value }))
+              }
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="pattern">Traffic Pattern</Label>
             <Select
