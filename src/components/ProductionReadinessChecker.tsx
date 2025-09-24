@@ -54,8 +54,8 @@ const ProductionReadinessChecker = () => {
       if (error) throw error;
       setCustomerDeployments(data || []);
       
-      // Auto-select first deployment if available
-      if (data && data.length > 0) {
+      // Auto-select first deployment if available and none is selected
+      if (data && data.length > 0 && !selectedDeployment) {
         setSelectedDeployment(data[0].api_key);
       }
     } catch (error) {
@@ -176,48 +176,79 @@ const ProductionReadinessChecker = () => {
           <CardDescription>Choose a customer deployment to validate</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {customerDeployments.map((deployment) => (
-              <Card 
-                key={deployment.id}
-                className={`cursor-pointer transition-colors ${
-                  selectedDeployment === deployment.api_key ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
-                }`}
-                onClick={() => setSelectedDeployment(deployment.api_key)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">{deployment.customer_name}</h4>
-                      <p className="text-sm text-muted-foreground">{deployment.domain}</p>
-                      <Badge variant="outline" className="mt-1">
-                        {deployment.status}
-                      </Badge>
+          {customerDeployments.length === 0 ? (
+            <div className="text-center py-8">
+              <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Customer Deployments</h3>
+              <p className="text-muted-foreground mb-4">
+                Create customer deployments in the Onboarding tab to run production validation.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {customerDeployments.map((deployment) => (
+                <Card 
+                  key={deployment.id}
+                  className={`cursor-pointer transition-colors ${
+                    selectedDeployment === deployment.api_key ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => setSelectedDeployment(deployment.api_key)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">{deployment.customer_name}</h4>
+                        <p className="text-sm text-muted-foreground">{deployment.domain}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline">
+                            {deployment.status}
+                          </Badge>
+                          {selectedDeployment === deployment.api_key && (
+                            <Badge variant="default" className="text-xs">
+                              Selected
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <Globe className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <Globe className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
-          <Button 
-            onClick={runProductionValidation}
-            disabled={!selectedDeployment || loading}
-            className="w-full"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Running Validation...
-              </>
-            ) : (
-              <>
-                <PlayCircle className="h-4 w-4 mr-2" />
-                Run Production Validation
-              </>
-            )}
-          </Button>
+          {customerDeployments.length === 0 ? (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                No active customer deployments found. Please create a customer deployment first in the Onboarding tab.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Button 
+              onClick={runProductionValidation}
+              disabled={!selectedDeployment || loading}
+              className="w-full"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Running Validation...
+                </>
+              ) : !selectedDeployment ? (
+                <>
+                  <PlayCircle className="h-4 w-4 mr-2" />
+                  Select Deployment to Validate
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="h-4 w-4 mr-2" />
+                  Run Production Validation
+                </>
+              )}
+            </Button>
+          )}
         </CardContent>
       </Card>
 
