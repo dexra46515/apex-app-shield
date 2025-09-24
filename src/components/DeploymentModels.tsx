@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import CloudCredentialManager from './CloudCredentialManager';
 
 interface DeploymentModel {
   id: string;
@@ -53,6 +54,9 @@ const DeploymentModels = () => {
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [customers, setCustomers] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
+  const [cloudCredentials, setCloudCredentials] = useState<any[]>([]);
+  const [selectedCredential, setSelectedCredential] = useState<string>('');
+  const [selectedCloudProvider, setSelectedCloudProvider] = useState<string>('');
   const [deploymentConfig, setDeploymentConfig] = useState<DeploymentConfig>({
     model: '',
     customerId: '',
@@ -62,6 +66,7 @@ const DeploymentModels = () => {
   });
   const [generatedArtifacts, setGeneratedArtifacts] = useState<any>({});
   const [loading, setLoading] = useState(false);
+  const [showCredentialManager, setShowCredentialManager] = useState(false);
 
   const deploymentModels: DeploymentModel[] = [
     {
@@ -128,6 +133,7 @@ const DeploymentModels = () => {
 
   useEffect(() => {
     loadCustomers();
+    loadCloudCredentials();
   }, []);
 
   const loadCustomers = async () => {
@@ -141,6 +147,20 @@ const DeploymentModels = () => {
       setCustomers(data || []);
     } catch (error) {
       console.error('Error loading customers:', error);
+    }
+  };
+
+  const loadCloudCredentials = async () => {
+    try {
+      const response = await supabase.functions.invoke('credential-manager', {
+        body: { action: 'list', userId: 'current-user' } // Will be replaced with actual user ID
+      });
+
+      if (response.data) {
+        setCloudCredentials(response.data.credentials || []);
+      }
+    } catch (error) {
+      console.error('Error loading cloud credentials:', error);
     }
   };
 
@@ -223,32 +243,57 @@ const DeploymentModels = () => {
   };
 
   const deployToEnvironment = async () => {
+    if (!selectedModel || !selectedCustomer || !selectedCredential) {
+      toast({
+        title: "Configuration Required",
+        description: "Please select deployment model, customer, and cloud credentials",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       toast({
-        title: "Starting Deployment",
-        description: "Deploying WAF to target environment...",
+        title: "Starting Real Deployment",
+        description: "Deploying WAF to your cloud infrastructure...",
       });
 
-      const response = await supabase.functions.invoke('deployment-orchestrator', {
+      const customer = customers.find(c => c.id === selectedCustomer);
+      
+      const response = await supabase.functions.invoke('cloud-deployer', {
         body: {
           model: selectedModel,
           customerId: selectedCustomer,
-          artifacts: generatedArtifacts,
-          config: deploymentConfig
+          cloudProvider: selectedCloudProvider,
+          credentialId: selectedCredential,
+          deploymentConfig: {
+            ...deploymentConfig,
+            customerName: customer?.customer_name,
+            domain: customer?.domain,
+            apiKey: customer?.api_key
+          }
         }
       });
 
       if (response.error) throw response.error;
 
       toast({
-        title: "Deployment Successful",
-        description: "WAF has been deployed and is now protecting your infrastructure",
+        title: "Deployment Started",
+        description: `WAF deployment initiated. Track progress at ${response.data.tracking_url}`,
       });
+
+      // Store deployment info for tracking
+      setGeneratedArtifacts({
+        ...generatedArtifacts,
+        deployment_id: response.data.deployment_id,
+        tracking_url: response.data.tracking_url
+      });
+
     } catch (error) {
-      console.error('Deployment error:', error);
+      console.error('Real deployment error:', error);
       toast({
         title: "Deployment Failed",
-        description: "Failed to deploy WAF configuration",
+        description: "Failed to deploy to cloud infrastructure",
         variant: "destructive",
       });
     }
@@ -267,8 +312,9 @@ const DeploymentModels = () => {
       </div>
 
       <Tabs defaultValue="models" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="models">Deployment Models</TabsTrigger>
+          <TabsTrigger value="credentials">Cloud Credentials</TabsTrigger>
           <TabsTrigger value="configure">Configure & Generate</TabsTrigger>
           <TabsTrigger value="deploy">Deploy & Monitor</TabsTrigger>
         </TabsList>
@@ -327,6 +373,11 @@ const DeploymentModels = () => {
           </div>
         </TabsContent>
 
+        {/* Cloud Credentials Management */}
+        <TabsContent value="credentials">
+          <CloudCredentialManager />
+        </TabsContent>
+
         {/* Configuration & Generation */}
         <TabsContent value="configure" className="space-y-6">
           <Card>
@@ -373,6 +424,43 @@ const DeploymentModels = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div>
+                    <Label htmlFor="cloud-provider">Cloud Provider</Label>
+                    <Select value={selectedCloudProvider} onValueChange={setSelectedCloudProvider}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select cloud provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="aws">🟠 Amazon Web Services</SelectItem>
+                        <SelectItem value="gcp">🔵 Google Cloud Platform</SelectItem>
+                        <SelectItem value="azure">🔷 Microsoft Azure</SelectItem>
+                        <SelectItem value="digitalocean">🌊 DigitalOcean</SelectItem>
+                        <SelectItem value="vercel">⚡ Vercel</SelectItem>
+                        <SelectItem value="railway">🚂 Railway</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedCloudProvider && (
+                    <div>
+                      <Label htmlFor="credential-select">Cloud Credentials</Label>
+                      <Select value={selectedCredential} onValueChange={setSelectedCredential}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select credentials" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cloudCredentials
+                            .filter(cred => cred.provider === selectedCloudProvider)
+                            .map(credential => (
+                              <SelectItem key={credential.id} value={credential.id}>
+                                {credential.credential_name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 {selectedModel && (
@@ -592,6 +680,7 @@ const DeploymentModels = () => {
                       <div className="mt-2 p-4 border rounded-lg bg-muted/50">
                         <div className="flex items-center gap-2 mb-2">
                           <Badge variant="outline">{selectedModel}</Badge>
+                          <Badge variant="outline">{selectedCloudProvider?.toUpperCase()}</Badge>
                           <span className="font-medium">
                             {customers.find(c => c.id === selectedCustomer)?.customer_name}
                           </span>
@@ -599,6 +688,11 @@ const DeploymentModels = () => {
                         <p className="text-sm text-muted-foreground">
                           Domain: {customers.find(c => c.id === selectedCustomer)?.domain}
                         </p>
+                        {selectedCredential && (
+                          <p className="text-sm text-muted-foreground">
+                            Credentials: {cloudCredentials.find(c => c.id === selectedCredential)?.credential_name}
+                          </p>
+                        )}
                       </div>
                     </div>
 

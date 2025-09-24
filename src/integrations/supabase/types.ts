@@ -221,6 +221,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cloud_credentials: {
+        Row: {
+          created_at: string
+          credential_name: string
+          encrypted_credentials: Json
+          id: string
+          is_active: boolean
+          provider: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credential_name: string
+          encrypted_credentials: Json
+          id?: string
+          is_active?: boolean
+          provider: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credential_name?: string
+          encrypted_credentials?: Json
+          id?: string
+          is_active?: boolean
+          provider?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       compliance_reports: {
         Row: {
           compliance_score: number
@@ -412,6 +445,44 @@ export type Database = {
           target_time?: string
         }
         Relationships: []
+      }
+      deployment_artifacts: {
+        Row: {
+          artifact_type: string
+          checksum: string | null
+          created_at: string
+          deployment_id: string
+          file_size: number | null
+          id: string
+          storage_path: string
+        }
+        Insert: {
+          artifact_type: string
+          checksum?: string | null
+          created_at?: string
+          deployment_id: string
+          file_size?: number | null
+          id?: string
+          storage_path: string
+        }
+        Update: {
+          artifact_type?: string
+          checksum?: string | null
+          created_at?: string
+          deployment_id?: string
+          file_size?: number | null
+          id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployment_artifacts_deployment_id_fkey"
+            columns: ["deployment_id"]
+            isOneToOne: false
+            referencedRelation: "live_deployments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       device_attestations: {
         Row: {
@@ -780,6 +851,57 @@ export type Database = {
           last_seen?: string | null
           reputation_score?: number | null
           risk_level?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      live_deployments: {
+        Row: {
+          cloud_provider: string
+          cost_estimate: number | null
+          created_at: string
+          customer_id: string
+          deployment_config: Json
+          deployment_logs: Json | null
+          deployment_model: string
+          id: string
+          infrastructure_id: string | null
+          internal_endpoints: Json | null
+          public_url: string | null
+          status: string
+          terminated_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          cloud_provider: string
+          cost_estimate?: number | null
+          created_at?: string
+          customer_id: string
+          deployment_config: Json
+          deployment_logs?: Json | null
+          deployment_model: string
+          id?: string
+          infrastructure_id?: string | null
+          internal_endpoints?: Json | null
+          public_url?: string | null
+          status?: string
+          terminated_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cloud_provider?: string
+          cost_estimate?: number | null
+          created_at?: string
+          customer_id?: string
+          deployment_config?: Json
+          deployment_logs?: Json | null
+          deployment_model?: string
+          id?: string
+          infrastructure_id?: string | null
+          internal_endpoints?: Json | null
+          public_url?: string | null
+          status?: string
+          terminated_at?: string | null
           updated_at?: string
         }
         Relationships: []
