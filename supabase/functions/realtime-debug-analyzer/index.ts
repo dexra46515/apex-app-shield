@@ -596,10 +596,10 @@ async function getDebugEvents(supabase: any, config: any) {
   // Calculate session statistics
   const stats = {
     total_events: events.length,
-    blocked_requests: events.filter(e => e.action_taken === 'block').length,
-    allowed_requests: events.filter(e => e.action_taken === 'allow').length,
-    challenged_requests: events.filter(e => e.action_taken === 'challenge').length,
-    average_processing_time: events.reduce((sum, e) => sum + (e.processing_time_ms || 0), 0) / events.length,
+    blocked_requests: events.filter((e: any) => e.action_taken === 'block').length,
+    allowed_requests: events.filter((e: any) => e.action_taken === 'allow').length,
+    challenged_requests: events.filter((e: any) => e.action_taken === 'challenge').length,
+    average_processing_time: events.reduce((sum: number, e: any) => sum + (e.processing_time_ms || 0), 0) / events.length,
     top_threat_types: getTopThreatTypes(events),
     top_source_ips: getTopSourceIPs(events)
   };
