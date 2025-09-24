@@ -38,12 +38,21 @@ const TrafficSimulator = () => {
     console.log('Traffic Simulator button clicked!');
     if (stats.processing) return;
 
+    if (!simulationConfig.targetUrl) {
+      toast({
+        title: "Target URL Required",
+        description: "Please enter a target URL to test",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setStats(prev => ({ ...prev, processing: true, progress: 0 }));
     
     try {
       toast({
         title: "Simulation Started",
-        description: `Generating ${simulationConfig.count} security events`,
+        description: `Testing ${simulationConfig.count} requests against ${simulationConfig.targetUrl}`,
       });
 
       const { data, error } = await supabase.functions.invoke('simulate-traffic', {
@@ -61,29 +70,39 @@ const TrafficSimulator = () => {
 
       console.log('Simulation results:', data);
 
-      // Update stats based on results
-      const results = data.results || [];
-      const attacks = results.filter((r: any) => 
-        r.analysis?.threat_analysis?.threat_type !== 'clean' && 
-        r.analysis?.threat_analysis?.threat_type !== 'unknown'
-      ).length;
-      const blocked = results.filter((r: any) => 
-        r.analysis?.threat_analysis?.should_block
-      ).length;
+      if (data?.summary) {
+        const { total, successful, failed, attacks } = data.summary;
+        
+        setStats(prev => ({
+          ...prev,
+          totalEvents: prev.totalEvents + total,
+          attacksGenerated: prev.attacksGenerated + attacks,
+          blocked: prev.blocked + failed, // Failed requests could be blocked by WAF
+          processing: false,
+          progress: 100,
+        }));
 
-      setStats(prev => ({
-        ...prev,
-        totalEvents: prev.totalEvents + results.length,
-        attacksGenerated: prev.attacksGenerated + attacks,
-        blocked: prev.blocked + blocked,
-        processing: false,
-        progress: 100,
-      }));
+        // Show detailed results
+        const errorResults = data.results?.filter((r: any) => !r.success) || [];
+        const successResults = data.results?.filter((r: any) => r.success) || [];
 
-      toast({
-        title: "Simulation Complete",
-        description: `Generated ${results.length} events, ${attacks} attacks detected, ${blocked} blocked`,
-      });
+        if (errorResults.length > 0) {
+          const errorMessages = errorResults.map((r: any) => 
+            `${r.target_url}: ${r.error}`
+          ).slice(0, 3); // Show first 3 errors
+          
+          toast({
+            title: "Simulation Complete with Issues",
+            description: `${successful}/${total} requests successful. Errors: ${errorMessages.join('; ')}`,
+            variant: errorResults.length === total ? "destructive" : "default"
+          });
+        } else {
+          toast({
+            title: "Simulation Complete",
+            description: `Successfully tested ${total} requests against ${simulationConfig.targetUrl}`,
+          });
+        }
+      }
 
     } catch (error) {
       console.error('Simulation error:', error);

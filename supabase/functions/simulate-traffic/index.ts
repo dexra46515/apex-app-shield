@@ -81,7 +81,17 @@ serve(async (req) => {
     );
 
     if (req.method === 'POST') {
-      const { pattern = 'mixed', count = 10 } = await req.json();
+      const { targetUrl, pattern = 'mixed', count = 10 } = await req.json();
+      
+      if (!targetUrl) {
+        return new Response(
+          JSON.stringify({ error: 'Target URL is required' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        );
+      }
       
       console.log(`Simulating ${count} events with pattern: ${pattern}`);
 
@@ -89,83 +99,82 @@ serve(async (req) => {
       
       for (let i = 0; i < count; i++) {
         let event;
+        let testPath;
+        let payload = '';
         
         if (pattern === 'attack' || (pattern === 'mixed' && Math.random() < 0.3)) {
-          event = generateAttackEvent();
+          const attackPattern = attackPatterns[Math.floor(Math.random() * attackPatterns.length)];
+          testPath = attackPattern.paths[Math.floor(Math.random() * attackPattern.paths.length)];
+          payload = attackPattern.payloads[Math.floor(Math.random() * attackPattern.payloads.length)];
         } else {
-          event = generateLegitEvent();
+          const legitPattern = legitTrafficPatterns[0];
+          testPath = legitPattern.paths[Math.floor(Math.random() * legitPattern.paths.length)];
+        }
+        
+        // Make REAL HTTP request to the target URL
+        try {
+          const fullUrl = `${targetUrl}${testPath}`;
+          console.log(`Testing URL: ${fullUrl}`);
+          
+          const response = await fetch(fullUrl, {
+            method: payload ? 'POST' : 'GET',
+            headers: {
+              'User-Agent': 'WAF-Security-Test/1.0',
+              'Content-Type': 'application/json'
+            },
+            body: payload ? JSON.stringify({ test: payload }) : undefined,
+            signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined // 10 second timeout
+          });
+          
+          event = {
+            target_url: fullUrl,
+            method: payload ? 'POST' : 'GET',
+            status: response.status,
+            response_time: Date.now(),
+            payload: payload,
+            success: response.ok,
+            error: response.ok ? null : `HTTP ${response.status}: ${response.statusText}`
+          };
+          
+          console.log(`Response: ${response.status} for ${fullUrl}`);
+          
+        } catch (error) {
+          console.error(`Request failed for ${targetUrl}${testPath}:`, (error as Error).message);
+          event = {
+            target_url: `${targetUrl}${testPath}`,
+            method: payload ? 'POST' : 'GET',
+            status: 0,
+            response_time: Date.now(),
+            payload: payload,
+            success: false,
+            error: (error as Error).message
+          };
         }
         
         events.push(event);
         
-        // Add some delay between events to simulate realistic timing
+        // Add delay between requests
         if (i < count - 1) {
-          await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 500));
         }
       }
 
-      // Process events through WAF monitor
-      const results = [];
+      // Return actual results
+      const successfulRequests = events.filter(e => e.success).length;
+      const failedRequests = events.filter(e => !e.success).length;
+      const attackRequests = events.filter(e => e.payload).length;
       
-      for (const event of events) {
-        try {
-          // Store event directly in database since WAF monitor is passive
-          const { error: insertError } = await supabaseClient
-            .from('security_events')
-            .insert({
-              timestamp: new Date().toISOString(),
-              event_type: 'monitor',
-              severity: event.payload ? 'high' : 'low',
-              source_ip: event.source_ip,
-              destination_ip: event.destination_ip,
-              user_agent: event.user_agent,
-              request_method: event.request_method,
-              request_path: event.request_path,
-              request_headers: event.request_headers,
-              response_status: event.response_status,
-              response_size: event.response_size,
-              threat_type: event.payload ? 'attack_detected' : 'unknown',
-              blocked: event.payload ? true : false,
-              payload: event.payload || '',
-              country_code: null,
-              asn: null,
-              rule_id: null
-            });
-
-          if (insertError) {
-            console.error('Error inserting event:', insertError);
-            results.push({
-              event: event,
-              error: insertError.message
-            });
-          } else {
-            results.push({
-              event: event,
-              analysis: {
-                threat_analysis: {
-                  threat_type: event.payload ? 'attack_detected' : 'clean',
-                  should_block: event.payload ? true : false,
-                  confidence: event.payload ? 0.95 : 0.05
-                }
-              }
-            });
-          }
-
-        } catch (error) {
-          console.error('Error processing event through WAF:', error);
-          results.push({
-            event: event,
-            error: error.message
-          });
-        }
-      }
-
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Generated ${count} security events`,
-          pattern: pattern,
-          results: results
+          message: `Tested ${count} requests against ${targetUrl}`,
+          summary: {
+            total: count,
+            successful: successfulRequests,
+            failed: failedRequests,
+            attacks: attackRequests
+          },
+          results: events
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -185,7 +194,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Traffic Simulation Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
