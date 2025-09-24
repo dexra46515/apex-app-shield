@@ -51,189 +51,7 @@ const attackPatterns = [
 
 const legitPaths = ["/", "/about", "/products", "/contact", "/api/status", "/login", "/dashboard"];
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    if (req.method === 'POST') {
-      const { targetUrl, pattern = 'mixed', count = 10 } = await req.json();
-      
-      if (!targetUrl) {
-        return new Response(
-          JSON.stringify({ error: 'Target URL is required' }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
-          }
-        );
-      }
-      
-      console.log(`Making ${count} REAL HTTP requests to ${targetUrl} with pattern: ${pattern}`);
-
-      const results: Array<any> = [];
-      let successCount = 0;
-      let failedCount = 0;
-      let attackCount = 0;
-      
-      for (let i = 0; i < count; i++) {
-        let testPath: string;
-        let payload = '';
-        let isAttack = false;
-        let timeoutId: number | undefined;
-        
-        // Determine if this should be an attack or legitimate request
-        if (pattern === 'attack' || (pattern === 'mixed' && Math.random() < 0.4)) {
-          const attackPattern = attackPatterns[Math.floor(Math.random() * attackPatterns.length)];
-          testPath = attackPattern.paths[Math.floor(Math.random() * attackPattern.paths.length)];
-          payload = attackPattern.payloads[Math.floor(Math.random() * attackPattern.payloads.length)];
-          isAttack = true;
-          attackCount++;
-        } else {
-          testPath = legitPaths[Math.floor(Math.random() * legitPaths.length)];
-        }
-        
-        const fullUrl = `${targetUrl}${testPath}`;
-        const startTime = Date.now();
-        
-        try {
-          console.log(`[${i+1}/${count}] Testing: ${fullUrl}`);
-          
-          const requestOptions: RequestInit = {
-            method: payload ? 'POST' : 'GET',
-            headers: {
-              'User-Agent': 'SecurityTest-Bot/1.0',
-              'Content-Type': 'application/json',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-            }
-          };
-          
-          if (payload) {
-            requestOptions.body = JSON.stringify({ test: payload });
-          }
-
-          // Set timeout manually since AbortSignal.timeout might not be available
-          timeoutId = setTimeout(() => {
-            throw new Error('Request timeout (10s)');
-          }, 10000);
-          
-          const response = await fetch(fullUrl, requestOptions);
-          if (timeoutId) clearTimeout(timeoutId);
-          
-          const responseTime = Date.now() - startTime;
-          const responseText = await response.text().catch(() => 'Unable to read response body');
-          
-          const result = {
-            url: fullUrl,
-            method: requestOptions.method,
-            status: response.status,
-            statusText: response.statusText,
-            responseTime,
-            isAttack,
-            payload: payload || null,
-            success: response.ok,
-            error: response.ok ? null : `HTTP ${response.status}: ${response.statusText}`,
-            blocked: response.status === 403 || response.status === 429 || responseText.includes('blocked') || responseText.includes('Cloudflare'),
-            responsePreview: responseText.substring(0, 200) + (responseText.length > 200 ? '...' : '')
-          };
-          
-          if (response.ok) {
-            successCount++;
-          } else {
-            failedCount++;
-          }
-          
-          results.push(result);
-          console.log(`Result: ${response.status} ${response.statusText} (${responseTime}ms)`);
-          
-        } catch (error) {
-          if (timeoutId) clearTimeout(timeoutId);
-          const responseTime = Date.now() - startTime;
-          
-          const result = {
-            url: fullUrl,
-            method: payload ? 'POST' : 'GET',
-            status: 0,
-            statusText: 'Request Failed',
-            responseTime,
-            isAttack,
-            payload: payload || null,
-            success: false,
-            error: (error as Error).message,
-            blocked: false,
-            responsePreview: null
-          };
-          
-          failedCount++;
-          results.push(result);
-          console.error(`Request failed: ${(error as Error).message}`);
-        }
-        
-        // Small delay between requests to avoid overwhelming the target
-        if (i < count - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-        }
-      }
-
-      const blockedCount = results.filter(r => r.blocked).length;
-      
-      console.log('📍 CHECKPOINT: About to start security processing');
-      console.log('📊 Results array length:', results.length);
-      console.log('📊 Target URL:', targetUrl);
-      
-      // Process security events BEFORE returning response
-      console.log('🔄 Starting security event processing...');
-      console.log(`📊 Processing ${results.length} results for ${targetUrl}`);
-      
-      try {
-        await processSecurityEvents(results, targetUrl);
-        console.log('✅ Security event processing completed');
-      } catch (error) {
-        console.error('❌ Security processing failed:', error);
-      }
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: `Completed ${count} real HTTP requests to ${targetUrl}`,
-          summary: {
-            total: count,
-            successful: successCount,
-            failed: failedCount,
-            attacks: attackCount,
-            blocked: blockedCount
-          },
-          results: results
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 405,
-      }
-    );
-
-  } catch (error) {
-    console.error('Traffic Simulation Error:', error);
-    return new Response(
-      JSON.stringify({ error: (error as Error).message }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    );
-  }
-});
-
-// Background task to process security events and trigger analysis
+// Define security processing function
 async function processSecurityEvents(results: any[], targetUrl: string) {
   console.log('🚀 processSecurityEvents function called');
   console.log('🚀 Starting security event processing...');
@@ -296,7 +114,7 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
       
       const requestData = {
         customer_id: customer.id,
-        source_ip: '127.0.0.1', // Simulator IP
+        source_ip: '127.0.0.1',
         request_path: new URL(result.url).pathname + new URL(result.url).search,
         request_method: result.method,
         user_agent: 'SecurityTest-Bot/1.0',
@@ -357,78 +175,187 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
       }
     }
 
-    console.log('🤖 Triggering AI analysis...');
-    // Trigger AI anomaly detection for each attack
-    for (const event of securityEvents) {
-      try {
-        const { error: aiError } = await supabase.functions.invoke('ai-anomaly-detector', {
-          body: {
-            session_id: `sim_${Date.now()}`,
-            source_ip: event.source_ip,
-            behavior_data: {
-              request_path: event.request_path,
-              method: event.request_method,
-              payload: event.payload,
-              user_agent: event.user_agent,
-              threat_type: event.threat_type
-            }
-          }
-        });
-        
-        if (aiError) {
-          console.error('❌ AI anomaly detection error:', aiError);
-        } else {
-          console.log('✅ AI analysis triggered');
-        }
-      } catch (error) {
-        console.error('❌ Failed to trigger AI analysis:', error);
-      }
-    }
-
-    console.log('📡 Triggering SIEM integration...');
-    // Trigger SIEM integration
-    try {
-      const { error: siemError } = await supabase.functions.invoke('siem-integrator', {
-        body: {
-          events: securityEvents,
-          event_source: 'traffic_simulator',
-          correlation_id: `sim_${Date.now()}`
-        }
-      });
-      
-      if (siemError) {
-        console.error('❌ SIEM integration error:', siemError);
-      } else {
-        console.log('✅ SIEM integration triggered');
-      }
-    } catch (error) {
-      console.error('❌ Failed to trigger SIEM integration:', error);
-    }
-
-    console.log('📋 Triggering compliance reporting...');
-    // Trigger compliance reporting
-    try {
-      const { error: complianceError } = await supabase.functions.invoke('compliance-reporter', {
-        body: {
-          event_count: results.length,
-          attack_count: securityEvents.length,
-          domain: domain,
-          test_run: true
-        }
-      });
-      
-      if (complianceError) {
-        console.error('❌ Compliance reporting error:', complianceError);
-      } else {
-        console.log('✅ Compliance reporting triggered');
-      }
-    } catch (error) {
-      console.error('❌ Failed to trigger compliance reporting:', error);
-    }
-
     console.log('🎉 Security event processing completed successfully!');
     
   } catch (error) {
     console.error('💥 Background processing error:', error);
   }
 }
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    if (req.method === 'POST') {
+      const { targetUrl, pattern = 'mixed', count = 10 } = await req.json();
+      
+      if (!targetUrl) {
+        return new Response(
+          JSON.stringify({ error: 'Target URL is required' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        );
+      }
+      
+      console.log(`Making ${count} REAL HTTP requests to ${targetUrl} with pattern: ${pattern}`);
+
+      const results: Array<any> = [];
+      let successCount = 0;
+      let failedCount = 0;
+      let attackCount = 0;
+      
+      for (let i = 0; i < count; i++) {
+        let testPath: string;
+        let payload = '';
+        let isAttack = false;
+        let timeoutId: number | undefined;
+        
+        // Determine if this should be an attack or legitimate request
+        if (pattern === 'attack' || (pattern === 'mixed' && Math.random() < 0.4)) {
+          const attackPattern = attackPatterns[Math.floor(Math.random() * attackPatterns.length)];
+          testPath = attackPattern.paths[Math.floor(Math.random() * attackPattern.paths.length)];
+          payload = attackPattern.payloads[Math.floor(Math.random() * attackPattern.payloads.length)];
+          isAttack = true;
+          attackCount++;
+        } else {
+          testPath = legitPaths[Math.floor(Math.random() * legitPaths.length)];
+        }
+        
+        const fullUrl = `${targetUrl}${testPath}`;
+        const startTime = Date.now();
+        
+        try {
+          console.log(`[${i+1}/${count}] Testing: ${fullUrl}`);
+          
+          const requestOptions: RequestInit = {
+            method: payload ? 'POST' : 'GET',
+            headers: {
+              'User-Agent': 'SecurityTest-Bot/1.0',
+              'Content-Type': 'application/json',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            }
+          };
+          
+          if (payload) {
+            requestOptions.body = JSON.stringify({ test: payload });
+          }
+
+          timeoutId = setTimeout(() => {
+            throw new Error('Request timeout (10s)');
+          }, 10000);
+          
+          const response = await fetch(fullUrl, requestOptions);
+          if (timeoutId) clearTimeout(timeoutId);
+          
+          const responseTime = Date.now() - startTime;
+          const responseText = await response.text().catch(() => 'Unable to read response body');
+          
+          const result = {
+            url: fullUrl,
+            method: requestOptions.method,
+            status: response.status,
+            statusText: response.statusText,
+            responseTime,
+            isAttack,
+            payload: payload || null,
+            success: response.ok,
+            error: response.ok ? null : `HTTP ${response.status}: ${response.statusText}`,
+            blocked: response.status === 403 || response.status === 429 || responseText.includes('blocked') || responseText.includes('Cloudflare'),
+            responsePreview: responseText.substring(0, 200) + (responseText.length > 200 ? '...' : '')
+          };
+          
+          if (response.ok) {
+            successCount++;
+          } else {
+            failedCount++;
+          }
+          
+          results.push(result);
+          console.log(`Result: ${response.status} ${response.statusText} (${responseTime}ms)`);
+          
+        } catch (error) {
+          if (timeoutId) clearTimeout(timeoutId);
+          const responseTime = Date.now() - startTime;
+          
+          const result = {
+            url: fullUrl,
+            method: payload ? 'POST' : 'GET',
+            status: 0,
+            statusText: 'Request Failed',
+            responseTime,
+            isAttack,
+            payload: payload || null,
+            success: false,
+            error: (error as Error).message,
+            blocked: false,
+            responsePreview: null
+          };
+          
+          failedCount++;
+          results.push(result);
+          console.error(`Request failed: ${(error as Error).message}`);
+        }
+        
+        // Small delay between requests
+        if (i < count - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+        }
+      }
+
+      const blockedCount = results.filter(r => r.blocked).length;
+      
+      console.log('📍 CHECKPOINT: About to start security processing');
+      console.log('📊 Results array length:', results.length);
+      console.log('📊 Target URL:', targetUrl);
+      
+      // Process security events BEFORE returning response
+      try {
+        await processSecurityEvents(results, targetUrl);
+        console.log('✅ Security event processing completed');
+      } catch (error) {
+        console.error('❌ Security processing failed:', error);
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `Completed ${count} real HTTP requests to ${targetUrl}`,
+          summary: {
+            total: count,
+            successful: successCount,
+            failed: failedCount,
+            attacks: attackCount,
+            blocked: blockedCount
+          },
+          results: results
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 405,
+      }
+    );
+
+  } catch (error) {
+    console.error('Traffic Simulation Error:', error);
+    return new Response(
+      JSON.stringify({ error: (error as Error).message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      }
+    );
+  }
+});
