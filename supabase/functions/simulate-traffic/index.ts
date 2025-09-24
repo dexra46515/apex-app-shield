@@ -225,24 +225,32 @@ serve(async (req) => {
 
 // Background task to process security events and trigger analysis
 async function processSecurityEvents(results: any[], targetUrl: string) {
+  console.log('🔄 Starting security event processing...');
+  console.log(`📊 Processing ${results.length} results for ${targetUrl}`);
+  
   try {
-    console.log('Processing security events in background...');
-    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+    
+    console.log('✅ Supabase client created');
 
     // Get or create customer deployment
     const domain = new URL(targetUrl).hostname;
+    console.log(`🔍 Looking for customer deployment for domain: ${domain}`);
+    
     let { data: customer } = await supabase
       .from('customer_deployments')
       .select('*')
       .eq('domain', domain)
-      .single();
+      .maybeSingle();
+
+    console.log(`👤 Customer found:`, customer ? 'YES' : 'NO');
 
     if (!customer) {
-      const { data: newCustomer } = await supabase
+      console.log('🆕 Creating new customer deployment...');
+      const { data: newCustomer, error: createError } = await supabase
         .from('customer_deployments')
         .insert({
           customer_name: `Auto-discovered: ${domain}`,
@@ -251,11 +259,18 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
         })
         .select()
         .single();
+        
+      if (createError) {
+        console.error('❌ Error creating customer:', createError);
+        return;
+      }
+      
       customer = newCustomer;
+      console.log('✅ New customer created:', customer);
     }
 
     if (!customer) {
-      console.error('Failed to create/find customer deployment');
+      console.error('❌ Failed to create/find customer deployment');
       return;
     }
 
@@ -263,7 +278,11 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
     const wafRequests = [];
     const securityEvents = [];
 
+    console.log('📝 Processing individual results...');
+    
     for (const result of results) {
+      console.log(`🔍 Processing result: ${result.url} - Attack: ${result.isAttack}`);
+      
       const requestData = {
         customer_id: customer.id,
         source_ip: '127.0.0.1', // Simulator IP
@@ -281,6 +300,7 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
 
       // Create security event for attacks
       if (result.isAttack) {
+        console.log(`⚠️ Creating security event for attack: ${result.url}`);
         securityEvents.push({
           event_type: 'attack_simulation',
           severity: 'high',
@@ -296,32 +316,37 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
       }
     }
 
+    console.log(`📊 Ready to insert: ${wafRequests.length} WAF requests, ${securityEvents.length} security events`);
+
     // Insert WAF requests
     if (wafRequests.length > 0) {
+      console.log('💾 Inserting WAF requests...');
       const { error: wafError } = await supabase
         .from('waf_requests')
         .insert(wafRequests);
       
       if (wafError) {
-        console.error('Error inserting WAF requests:', wafError);
+        console.error('❌ Error inserting WAF requests:', wafError);
       } else {
-        console.log(`Stored ${wafRequests.length} WAF requests`);
+        console.log(`✅ Stored ${wafRequests.length} WAF requests`);
       }
     }
 
     // Insert security events
     if (securityEvents.length > 0) {
+      console.log('🛡️ Inserting security events...');
       const { error: eventError } = await supabase
         .from('security_events')
         .insert(securityEvents);
       
       if (eventError) {
-        console.error('Error inserting security events:', eventError);
+        console.error('❌ Error inserting security events:', eventError);
       } else {
-        console.log(`Stored ${securityEvents.length} security events`);
+        console.log(`✅ Stored ${securityEvents.length} security events`);
       }
     }
 
+    console.log('🤖 Triggering AI analysis...');
     // Trigger AI anomaly detection for each attack
     for (const event of securityEvents) {
       try {
@@ -340,13 +365,16 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
         });
         
         if (aiError) {
-          console.error('AI anomaly detection error:', aiError);
+          console.error('❌ AI anomaly detection error:', aiError);
+        } else {
+          console.log('✅ AI analysis triggered');
         }
       } catch (error) {
-        console.error('Failed to trigger AI analysis:', error);
+        console.error('❌ Failed to trigger AI analysis:', error);
       }
     }
 
+    console.log('📡 Triggering SIEM integration...');
     // Trigger SIEM integration
     try {
       const { error: siemError } = await supabase.functions.invoke('siem-integrator', {
@@ -358,12 +386,15 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
       });
       
       if (siemError) {
-        console.error('SIEM integration error:', siemError);
+        console.error('❌ SIEM integration error:', siemError);
+      } else {
+        console.log('✅ SIEM integration triggered');
       }
     } catch (error) {
-      console.error('Failed to trigger SIEM integration:', error);
+      console.error('❌ Failed to trigger SIEM integration:', error);
     }
 
+    console.log('📋 Triggering compliance reporting...');
     // Trigger compliance reporting
     try {
       const { error: complianceError } = await supabase.functions.invoke('compliance-reporter', {
@@ -376,15 +407,17 @@ async function processSecurityEvents(results: any[], targetUrl: string) {
       });
       
       if (complianceError) {
-        console.error('Compliance reporting error:', complianceError);
+        console.error('❌ Compliance reporting error:', complianceError);
+      } else {
+        console.log('✅ Compliance reporting triggered');
       }
     } catch (error) {
-      console.error('Failed to trigger compliance reporting:', error);
+      console.error('❌ Failed to trigger compliance reporting:', error);
     }
 
-    console.log('Security event processing completed');
+    console.log('🎉 Security event processing completed successfully!');
     
   } catch (error) {
-    console.error('Background processing error:', error);
+    console.error('💥 Background processing error:', error);
   }
 }
