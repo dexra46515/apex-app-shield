@@ -96,10 +96,10 @@ const EnhancedCustomerOnboarding = () => {
 
   const [steps, setSteps] = useState<OnboardingStep[]>([
     { id: 1, title: 'Customer Details', description: 'Company & contact information', completed: false, inProgress: false },
-    { id: 2, title: 'Security Setup', description: 'API keys & initial rules', completed: false, inProgress: false },
-    { id: 3, title: 'WAF Deployment', description: 'Configure & deploy protection', completed: false, inProgress: false },
-    { id: 4, title: 'Integration Test', description: 'Verify WAF functionality', completed: false, inProgress: false },
-    { id: 5, title: 'Go Live', description: 'Activate monitoring & alerts', completed: false, inProgress: false }
+    { id: 2, title: 'Deployment Model', description: 'Choose Docker, K8s, or cloud deployment', completed: false, inProgress: false },
+    { id: 3, title: 'Cloud Credentials', description: 'Setup AWS, GCP, or Azure credentials', completed: false, inProgress: false },
+    { id: 4, title: 'One-Click Deploy', description: 'Deploy WAF to your infrastructure', completed: false, inProgress: false },
+    { id: 5, title: 'Verification & Go Live', description: 'Test and activate protection', completed: false, inProgress: false }
   ]);
 
   // Real-time validation
