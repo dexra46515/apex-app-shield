@@ -221,6 +221,63 @@ export type Database = {
         }
         Relationships: []
       }
+      cicd_security_tests: {
+        Row: {
+          artifacts_url: string | null
+          branch_name: string
+          commit_hash: string
+          completed_at: string | null
+          created_at: string
+          customer_id: string
+          error_message: string | null
+          id: string
+          pipeline_id: string | null
+          repository_url: string
+          security_score: number
+          status: string
+          test_duration_ms: number | null
+          test_results: Json
+          test_suite_name: string
+          vulnerabilities_found: number
+        }
+        Insert: {
+          artifacts_url?: string | null
+          branch_name: string
+          commit_hash: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id: string
+          error_message?: string | null
+          id?: string
+          pipeline_id?: string | null
+          repository_url: string
+          security_score?: number
+          status?: string
+          test_duration_ms?: number | null
+          test_results: Json
+          test_suite_name: string
+          vulnerabilities_found?: number
+        }
+        Update: {
+          artifacts_url?: string | null
+          branch_name?: string
+          commit_hash?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string
+          error_message?: string | null
+          id?: string
+          pipeline_id?: string | null
+          repository_url?: string
+          security_score?: number
+          status?: string
+          test_duration_ms?: number | null
+          test_results?: Json
+          test_suite_name?: string
+          vulnerabilities_found?: number
+        }
+        Relationships: []
+      }
       cloud_credentials: {
         Row: {
           created_at: string
@@ -446,6 +503,122 @@ export type Database = {
         }
         Relationships: []
       }
+      debug_events: {
+        Row: {
+          action_taken: string
+          created_at: string
+          event_timestamp: string
+          id: string
+          processing_stack_trace: Json | null
+          processing_time_ms: number
+          request_body: string | null
+          request_headers: Json | null
+          request_method: string
+          request_path: string
+          response_body: string | null
+          response_headers: Json | null
+          response_status: number | null
+          rule_matches: Json | null
+          session_id: string
+          source_ip: unknown
+          threat_analysis: Json | null
+        }
+        Insert: {
+          action_taken: string
+          created_at?: string
+          event_timestamp?: string
+          id?: string
+          processing_stack_trace?: Json | null
+          processing_time_ms: number
+          request_body?: string | null
+          request_headers?: Json | null
+          request_method: string
+          request_path: string
+          response_body?: string | null
+          response_headers?: Json | null
+          response_status?: number | null
+          rule_matches?: Json | null
+          session_id: string
+          source_ip: unknown
+          threat_analysis?: Json | null
+        }
+        Update: {
+          action_taken?: string
+          created_at?: string
+          event_timestamp?: string
+          id?: string
+          processing_stack_trace?: Json | null
+          processing_time_ms?: number
+          request_body?: string | null
+          request_headers?: Json | null
+          request_method?: string
+          request_path?: string
+          response_body?: string | null
+          response_headers?: Json | null
+          response_status?: number | null
+          rule_matches?: Json | null
+          session_id?: string
+          source_ip?: unknown
+          threat_analysis?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debug_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "debug_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      debug_sessions: {
+        Row: {
+          capture_settings: Json
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          debug_mode: string
+          ended_at: string | null
+          events_captured: number
+          filters: Json
+          id: string
+          is_active: boolean
+          session_duration_minutes: number | null
+          session_name: string
+          target_domain: string
+        }
+        Insert: {
+          capture_settings?: Json
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          debug_mode?: string
+          ended_at?: string | null
+          events_captured?: number
+          filters?: Json
+          id?: string
+          is_active?: boolean
+          session_duration_minutes?: number | null
+          session_name: string
+          target_domain: string
+        }
+        Update: {
+          capture_settings?: Json
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          debug_mode?: string
+          ended_at?: string | null
+          events_captured?: number
+          filters?: Json
+          id?: string
+          is_active?: boolean
+          session_duration_minutes?: number | null
+          session_name?: string
+          target_domain?: string
+        }
+        Relationships: []
+      }
       deployment_artifacts: {
         Row: {
           artifact_type: string
@@ -483,6 +656,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dev_waf_configs: {
+        Row: {
+          config_name: string
+          config_template: Json
+          created_at: string
+          customer_id: string
+          docker_config: string | null
+          download_count: number
+          environment_vars: Json
+          framework: string
+          id: string
+          is_active: boolean
+          middleware_code: string
+          npm_package_config: Json | null
+          updated_at: string
+        }
+        Insert: {
+          config_name: string
+          config_template: Json
+          created_at?: string
+          customer_id: string
+          docker_config?: string | null
+          download_count?: number
+          environment_vars?: Json
+          framework: string
+          id?: string
+          is_active?: boolean
+          middleware_code: string
+          npm_package_config?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          config_name?: string
+          config_template?: Json
+          created_at?: string
+          customer_id?: string
+          docker_config?: string | null
+          download_count?: number
+          environment_vars?: Json
+          framework?: string
+          id?: string
+          is_active?: boolean
+          middleware_code?: string
+          npm_package_config?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       device_attestations: {
         Row: {
@@ -667,6 +888,57 @@ export type Database = {
           reason?: string
           region?: string | null
           restriction_type?: string
+        }
+        Relationships: []
+      }
+      gitops_security_policies: {
+        Row: {
+          access_token_encrypted: string | null
+          auto_deploy: boolean
+          branch_name: string
+          created_at: string
+          customer_id: string
+          git_provider: string
+          id: string
+          last_sync: string | null
+          policy_file_path: string
+          policy_version: string | null
+          repository_url: string
+          sync_status: string
+          updated_at: string
+          webhook_secret: string | null
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          auto_deploy?: boolean
+          branch_name?: string
+          created_at?: string
+          customer_id: string
+          git_provider?: string
+          id?: string
+          last_sync?: string | null
+          policy_file_path?: string
+          policy_version?: string | null
+          repository_url: string
+          sync_status?: string
+          updated_at?: string
+          webhook_secret?: string | null
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          auto_deploy?: boolean
+          branch_name?: string
+          created_at?: string
+          customer_id?: string
+          git_provider?: string
+          id?: string
+          last_sync?: string | null
+          policy_file_path?: string
+          policy_version?: string | null
+          repository_url?: string
+          sync_status?: string
+          updated_at?: string
+          webhook_secret?: string | null
         }
         Relationships: []
       }
