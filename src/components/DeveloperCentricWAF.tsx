@@ -83,23 +83,36 @@ const DeveloperCentricWAF = () => {
   const handleCheckDockerWAF = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:9090/waf/status');
-      if (response.ok) {
-        const status = await response.json();
-        setWafMetrics(status);
+      // Call Supabase edge function instead of localhost
+      const { data, error } = await supabase.functions.invoke('waf-monitor', {
+        method: 'GET'
+      });
+      
+      if (error) {
+        throw new Error(error.message || 'WAF status check failed');
+      }
+      
+      if (data) {
+        console.log('WAF status received:', data);
+        setWafMetrics(data);
         setDockerStatus('running');
         toast({
-          title: "WAF Container Running",
-          description: `Policies: ${status.policies_loaded}, Rules: ${status.rules_active}, Requests: ${status.requests_processed}`,
+          title: "WAF Status Retrieved",
+          description: `Active Deployments: ${data.active_deployments}, Requests Today: ${data.requests_today}, Threats Blocked: ${data.threats_blocked_today}`,
         });
       } else {
-        throw new Error('WAF container not responding');
+        throw new Error('No WAF data received');
       }
     } catch (error) {
-      setDockerStatus('stopped');
+      setDockerStatus('error');
+      setWafMetrics({
+        status: "error", 
+        version: "unknown",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       toast({
-        title: "WAF Container Offline",
-        description: "Start with: docker-compose -f deployment/dev-waf/docker-compose.dev.yml up -d",
+        title: "WAF Status Check Failed",
+        description: error instanceof Error ? error.message : "Failed to retrieve WAF status from cloud backend",
         variant: "destructive"
       });
     } finally {
@@ -236,31 +249,32 @@ const DeveloperCentricWAF = () => {
     }
   };
 
-  // Request Replay
+  // Request Replay via edge function
   const handleRequestReplay = async (requestId: string) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:9090/waf/replay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request_id: requestId, debug_enabled: true })
+      const { data, error } = await supabase.functions.invoke('waf-monitor', {
+        body: { 
+          action: 'replay_request',
+          request_id: requestId, 
+          debug_enabled: true 
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Replay failed - WAF container may not be running');
+      if (error) {
+        throw new Error(error.message || 'Request replay failed');
       }
 
-      const result = await response.json();
-      setCLIOutput(JSON.stringify(result, null, 2));
+      setCLIOutput(JSON.stringify(data, null, 2));
       
       toast({
         title: "Request Replayed",
-        description: `Request ${requestId} processed with full debugging`,
+        description: `Request ${requestId} processed with full debugging via cloud backend`,
       });
     } catch (error) {
       toast({
         title: "Replay Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive"
       });
     } finally {
@@ -380,48 +394,36 @@ const DeveloperCentricWAF = () => {
     return () => clearInterval(interval);
   }, [toast]);
 
-  // Real-time WAF container health monitoring
+  // Real-time WAF status monitoring via edge function
   useEffect(() => {
     const checkRealWAFStatus = async () => {
       try {
-        // Direct connection to real Docker WAF container
-        const response = await fetch('http://localhost:9090/waf/status', {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          }
+        // Call edge function instead of localhost
+        const { data, error } = await supabase.functions.invoke('waf-monitor', {
+          method: 'GET'
         });
         
-        if (response.ok) {
-          const realStatus = await response.json();
-          setWafMetrics(realStatus);
+        if (!error && data) {
+          setWafMetrics(data);
           setDockerStatus('running');
-          
-          // Also fetch real metrics from Prometheus endpoint
-          try {
-            const metricsResponse = await fetch('http://localhost:9090/metrics');
-            if (metricsResponse.ok) {
-              const metricsText = await metricsResponse.text();
-              console.log('Real WAF metrics received:', metricsText.split('\n').slice(0, 5).join('\n'));
-            }
-          } catch (metricsError) {
-            console.log('Metrics endpoint not available yet');
-          }
+          console.log('WAF status updated from cloud backend:', data);
         } else {
           setDockerStatus('stopped');
           setWafMetrics(null);
+          console.log('WAF status unavailable:', error?.message);
         }
       } catch (error) {
         setDockerStatus('stopped');
         setWafMetrics(null);
+        console.log('WAF status check error:', error);
       }
     };
 
     // Initial check
     checkRealWAFStatus();
     
-    // Real-time polling every 15 seconds
-    const healthCheckInterval = setInterval(checkRealWAFStatus, 15000);
+    // Real-time polling every 30 seconds (less frequent for cloud backend)
+    const healthCheckInterval = setInterval(checkRealWAFStatus, 30000);
     return () => clearInterval(healthCheckInterval);
   }, []);
 
@@ -685,24 +687,9 @@ const DeveloperCentricWAF = () => {
                   </div>
                 )}
                 
-                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5" />
-                    <div>
-                      <div className="text-amber-400 font-semibold">Local Testing Only</div>
-                      <div className="text-sm text-amber-300 mt-1">
-                        The WAF status check works only when running locally. In Lovable preview, test with:
-                        <div className="mt-2 font-mono text-xs bg-slate-800 p-2 rounded">
-                          curl -sS http://localhost:9090/waf/status | jq .
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <Button onClick={handleCheckDockerWAF} disabled={true} className="w-full opacity-50 cursor-not-allowed">
+                <Button onClick={handleCheckDockerWAF} disabled={loading} className="w-full">
                   <Activity className="w-4 h-4 mr-2" />
-                  Check WAF Status (Local Only)
+                  {loading ? 'Checking WAF Status...' : 'Check WAF Status'}
                 </Button>
                 
                 <div className="space-y-2 text-xs text-slate-400">
@@ -769,18 +756,19 @@ const DeveloperCentricWAF = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => window.open('http://localhost:9090/waf/status', '_blank')}
+                    onClick={handleCheckDockerWAF}
+                    disabled={loading}
                   >
-                    <ExternalLink className="w-3 h-3 mr-1" />
-                    WAF API
+                    <Activity className="w-3 h-3 mr-1" />
+                    {loading ? 'Checking...' : 'Check Status'}
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => window.open('http://localhost:9090/metrics', '_blank')}
+                    onClick={() => window.open('https://docs.lovable.dev/tips-tricks/troubleshooting', '_blank')}
                   >
-                    <Activity className="w-3 h-3 mr-1" />
-                    Metrics
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    Help
                   </Button>
                 </div>
               </CardContent>
