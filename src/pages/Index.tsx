@@ -34,19 +34,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="container mx-auto p-6">
-        {/* Developer Onboarding Banner */}
-        <div className="mb-6 p-4 bg-gradient-to-r from-green-900/50 to-blue-900/50 rounded-lg border border-green-700">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-6 w-6 text-green-400" />
-            <div>
-              <div className="text-lg font-semibold text-green-400">🚀 Platform Ready for Developers!</div>
-              <div className="text-sm text-slate-300">
-                Complete setup guides, automated scripts, and production-ready WAF now available. 
-                <span className="text-blue-400 ml-1">Check the "Developer" tab for 5-minute setup.</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <Tabs defaultValue="standard" className="space-y-6">
           <div className="flex items-center justify-between">
