@@ -463,12 +463,37 @@ deployment:
   const handleRunOpenAPITest = async () => {
     setLoading(true);
     try {
+      // Validate target URL
+      if (!openApiConfig.targetUrl || !openApiConfig.targetUrl.trim()) {
+        throw new Error("Please provide a target URL for testing");
+      }
+
+      // Validate URL format
+      try {
+        new URL(openApiConfig.targetUrl);
+      } catch {
+        throw new Error("Please provide a valid URL (e.g., https://api.example.com)");
+      }
+
       let parsedSpec = null;
       if (openApiConfig.openApiSpec.trim()) {
         try {
           parsedSpec = JSON.parse(openApiConfig.openApiSpec);
-        } catch {
-          throw new Error('Invalid OpenAPI JSON specification');
+          
+          // Basic OpenAPI spec validation
+          if (!parsedSpec.openapi && !parsedSpec.swagger) {
+            throw new Error("OpenAPI spec must include 'openapi' or 'swagger' version field");
+          }
+          
+          if (!parsedSpec.paths || Object.keys(parsedSpec.paths).length === 0) {
+            throw new Error("OpenAPI spec must include 'paths' with at least one endpoint");
+          }
+          
+        } catch (parseError) {
+          if (parseError.message.includes('openapi') || parseError.message.includes('paths')) {
+            throw parseError; // Re-throw our custom validation errors
+          }
+          throw new Error(`Invalid JSON format in OpenAPI specification: ${parseError.message}`);
         }
       }
 
@@ -482,7 +507,21 @@ deployment:
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific edge function errors
+        if (error.message?.includes('fetch')) {
+          throw new Error(`Cannot reach target URL: ${openApiConfig.targetUrl}. Please check if the API is accessible.`);
+        } else if (error.message?.includes('timeout')) {
+          throw new Error("Request timed out. The target API might be slow or unreachable.");
+        } else if (error.message?.includes('openapi-traffic-generator')) {
+          throw new Error("OpenAPI testing service is currently unavailable. Please try again later.");
+        }
+        throw new Error(`API testing failed: ${error.message}`);
+      }
+
+      if (!data || !data.summary) {
+        throw new Error("Invalid response from testing service. Please try again.");
+      }
 
       setTestResults(data);
       toast({
@@ -492,7 +531,7 @@ deployment:
     } catch (error) {
       toast({
         title: "OpenAPI Test Failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred during testing",
         variant: "destructive"
       });
     } finally {
@@ -504,6 +543,18 @@ deployment:
   const handleSimulateTraffic = async () => {
     setLoading(true);
     try {
+      // Validate target URL
+      if (!openApiConfig.targetUrl || !openApiConfig.targetUrl.trim()) {
+        throw new Error("Please provide a target URL for traffic simulation");
+      }
+
+      // Validate URL format
+      try {
+        new URL(openApiConfig.targetUrl);
+      } catch {
+        throw new Error("Please provide a valid URL (e.g., https://example.com)");
+      }
+
       const { data, error } = await supabase.functions.invoke('simulate-traffic', {
         body: {
           targetUrl: openApiConfig.targetUrl,
@@ -512,7 +563,21 @@ deployment:
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific edge function errors
+        if (error.message?.includes('fetch')) {
+          throw new Error(`Cannot reach target URL: ${openApiConfig.targetUrl}. Please check if the server is accessible.`);
+        } else if (error.message?.includes('timeout')) {
+          throw new Error("Request timed out. The target server might be slow or unreachable.");
+        } else if (error.message?.includes('simulate-traffic')) {
+          throw new Error("Traffic simulation service is currently unavailable. Please try again later.");
+        }
+        throw new Error(`Traffic simulation failed: ${error.message}`);
+      }
+
+      if (!data || !data.summary) {
+        throw new Error("Invalid response from simulation service. Please try again.");
+      }
 
       toast({
         title: "Traffic Simulation Complete",
@@ -521,7 +586,7 @@ deployment:
     } catch (error) {
       toast({
         title: "Traffic Simulation Failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred during simulation",
         variant: "destructive"
       });
     } finally {
@@ -1115,13 +1180,51 @@ deployment:
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-slate-300">OpenAPI 3.0 Specification (JSON)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-slate-300">OpenAPI 3.0 Specification (JSON)</Label>
+                    <Badge variant="secondary" className="text-xs">Optional</Badge>
+                  </div>
                   <Textarea
-                    placeholder='{"openapi": "3.0.0", "info": {"title": "API", "version": "1.0.0"}, "paths": {...}}'
+                    placeholder={`{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "My API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/users": {
+      "get": {
+        "summary": "Get users",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {"type": "integer"}
+          }
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ]
+      }
+    }
+  }
+}`}
                     value={openApiConfig.openApiSpec}
                     onChange={(e) => setOpenApiConfig({...openApiConfig, openApiSpec: e.target.value})}
-                    className="bg-slate-700 border-slate-600 text-white font-mono text-sm min-h-[150px]"
+                    className="bg-slate-700 border-slate-600 text-white font-mono text-sm min-h-[200px]"
                   />
+                  <div className="text-xs text-slate-400">
+                    💡 <strong>Leave empty</strong> to test with generic patterns, or paste your OpenAPI/Swagger JSON for targeted API security testing
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
