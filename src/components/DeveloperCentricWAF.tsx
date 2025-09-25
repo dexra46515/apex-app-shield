@@ -590,10 +590,21 @@ const DeveloperCentricWAF = () => {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Zap className="h-5 w-5 text-yellow-400" />
-                  Quick Start Guide
+                  Quick Start Guide - 5 Minutes Setup
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 p-4 bg-gradient-to-r from-cyan-900/50 to-blue-900/50 rounded border border-cyan-700">
+                  <div className="text-sm font-semibold text-cyan-400 mb-2">🚀 One-Command Setup (Recommended)</div>
+                  <div className="text-xs text-slate-300 bg-slate-900 p-3 rounded font-mono">
+                    chmod +x scripts/developer-onboard.sh<br/>
+                    ./scripts/developer-onboard.sh
+                  </div>
+                  <div className="text-xs text-slate-400 mt-2">
+                    Automatically sets up Docker WAF, monitoring stack, and verifies everything works
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <div className="text-sm font-semibold text-cyan-400">1. Start WAF Container</div>
@@ -615,16 +626,16 @@ const DeveloperCentricWAF = () => {
                   <div className="space-y-2">
                     <div className="text-sm font-semibold text-orange-400">3. Run Security Tests</div>
                     <div className="text-xs text-slate-300 bg-slate-900 p-2 rounded font-mono">
-                      ana-waf test -u http://localhost:8080 --strict
+                      ana-waf test -u http://localhost:8081 --strict
                     </div>
                   </div>
                   
                   <div className="space-y-2">
                     <div className="text-sm font-semibold text-purple-400">4. Access Dashboards</div>
                     <div className="text-xs text-slate-300 space-y-1">
+                      <div>WAF Proxy: :8081</div>
                       <div>WAF API: :9090</div>
                       <div>Grafana: :3001</div>
-                      <div>Prometheus: :9091</div>
                       <div>This UI: :3000</div>
                     </div>
                   </div>
@@ -637,6 +648,86 @@ const DeveloperCentricWAF = () => {
                     <div>• <strong>Zero Mock Implementation:</strong> Direct HTTP calls, real database queries, actual file operations</div>
                     <div>• <strong>Security Features:</strong> SQL Injection, XSS, Path Traversal, Rate Limiting, Bot Detection</div>
                     <div>• <strong>Enterprise Integration:</strong> CI/CD pipelines, Kubernetes deployment, compliance reporting</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Documentation & Guides Section */}
+          <div className="mt-6">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <FileCode className="h-5 w-5 text-blue-400" />
+                  📚 Complete Documentation & Guides
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-3">
+                    <div className="text-sm font-semibold text-blue-400">🚀 Getting Started</div>
+                    <div className="space-y-2 text-xs text-slate-300">
+                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                        <ExternalLink className="h-3 w-3" />
+                        <span>DEVELOPER_QUICK_START.md - 5-minute setup guide</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                        <ExternalLink className="h-3 w-3" />
+                        <span>README.md - Project overview & quick start</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                        <ExternalLink className="h-3 w-3" />
+                        <span>DEVELOPER_ONBOARDING_CHECKLIST.md - Implementation status</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="text-sm font-semibold text-green-400">⚙️ Configuration & Setup</div>
+                    <div className="space-y-2 text-xs text-slate-300">
+                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                        <ExternalLink className="h-3 w-3" />
+                        <span>SUPABASE_SETUP_GUIDE.md - API keys & backend</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                        <ExternalLink className="h-3 w-3" />
+                        <span>deployment/dev-waf/.env.example - Environment config</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                        <ExternalLink className="h-3 w-3" />
+                        <span>deployment/customer-integration-guide.md - Production setup</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="text-sm font-semibold text-purple-400">🛠️ Tools & Scripts</div>
+                    <div className="space-y-2 text-xs text-slate-300">
+                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                        <Terminal className="h-3 w-3" />
+                        <span>scripts/developer-onboard.sh - Automated setup</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                        <Activity className="h-3 w-3" />
+                        <span>scripts/check-waf-status.sh - Health diagnostics</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                        <TestTube2 className="h-3 w-3" />
+                        <span>deployment/dev-waf/test-waf.sh - WAF testing</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 p-4 bg-gradient-to-r from-orange-900/50 to-red-900/50 rounded border border-orange-700">
+                  <div className="text-sm font-semibold text-orange-400 mb-2">🎯 Ready for Production</div>
+                  <div className="text-xs text-slate-300 space-y-1">
+                    <div>✅ <strong>Complete Setup Guide:</strong> 5-minute automated onboarding with verification</div>
+                    <div>✅ <strong>API Key Management:</strong> Supabase integration with secrets management</div>
+                    <div>✅ <strong>Production Templates:</strong> Docker, Kubernetes, and cloud deployment configs</div>
+                    <div>✅ <strong>Developer Tools:</strong> CLI testing, health checks, and diagnostic scripts</div>
+                    <div>✅ <strong>Enterprise Features:</strong> Monitoring, alerting, compliance, and audit trails</div>
                   </div>
                 </div>
               </CardContent>
