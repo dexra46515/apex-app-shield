@@ -135,6 +135,11 @@ grep -n '\$waf_' /usr/local/openresty/nginx/conf/nginx.conf || true
 
 echo "Starting OpenResty with WAF protection..."
 
+# Stream error log to stdout for visibility
+LOG_FILE="/usr/local/openresty/waf/logs/error.log"
+: > "$LOG_FILE" || true
+(tail -F "$LOG_FILE" & disown) 2>/dev/null || true
+
 # Start nginx/openresty in foreground
 if [ "$1" = "nginx" ]; then
     echo "Starting nginx with arguments: $@"

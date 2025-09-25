@@ -8,7 +8,7 @@ docker-compose -f docker-compose.dev.yml down -v
 
 # Build and start WAF
 echo "Building WAF container..."
-docker-compose -f docker-compose.dev.yml build ana-waf-dev
+docker-compose -f docker-compose.dev.yml build --no-cache ana-waf-dev
 
 echo "Starting WAF container..."
 docker-compose -f docker-compose.dev.yml up -d ana-waf-dev

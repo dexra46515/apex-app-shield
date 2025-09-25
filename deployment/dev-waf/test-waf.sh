@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 
 echo ""
 echo "📦 Step 1: Building WAF container..."
-docker-compose -f docker-compose.dev.yml build ana-waf-dev
+docker-compose -f docker-compose.dev.yml build --no-cache ana-waf-dev
 
 if [ $? -ne 0 ]; then
     echo "❌ Docker build failed!"
@@ -36,7 +36,7 @@ fi
 
 echo ""
 echo "🔍 Step 4: Testing a malicious request..."
-curl -H "User-Agent: Attacker" "http://localhost:8080/test?q=<script>alert('xss')</script>"
+curl -H "User-Agent: Attacker" "http://localhost:8081/test?q=<script>alert('xss')</script>"
 
 echo ""
 echo "📊 Step 5: Final WAF status..."
