@@ -122,6 +122,101 @@ const DeveloperCentricWAF = () => {
     }
   };
 
+  // Download WAF Container Package
+  const handleDownloadWAFContainer = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('deployment-generator', {
+        body: {
+          action: 'generate_docker_package',
+          customer_id: 'demo-customer',
+          deployment_type: 'docker',
+          domain: 'localhost:8080'
+        }
+      });
+
+      if (error) throw new Error(error.message || 'Container generation failed');
+
+      if (!data) throw new Error('No deployment package generated');
+
+      // Create downloadable deployment script
+      const deploymentScript = `#!/bin/bash
+# ANA WAF Docker Deployment Script
+# Generated: ${new Date().toISOString()}
+# Customer ID: demo-customer
+
+echo "🐳 ANA WAF Container Deployment"
+echo "================================"
+
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker not found. Please install Docker first."
+    exit 1
+fi
+
+echo "✅ Docker found"
+
+# Pull the latest ANA WAF image
+echo "📦 Pulling ANA WAF container..."
+docker pull registry.ana-waf.com/enterprise-waf:latest
+
+# Stop any existing WAF container
+docker stop ana-waf-protection 2>/dev/null || true
+docker rm ana-waf-protection 2>/dev/null || true
+
+# Deploy WAF with customer configuration
+echo "🚀 Deploying WAF container..."
+docker run -d \\
+  --name ana-waf-protection \\
+  --restart unless-stopped \\
+  -p 8080:80 \\
+  -p 9090:9090 \\
+  -e CUSTOMER_ID="demo-customer" \\
+  -e SUPABASE_URL="https://kgazsoccrtmhturhxggi.supabase.co" \\
+  -e SUPABASE_ANON_KEY="${process.env.SUPABASE_ANON_KEY || 'your_key_here'}" \\
+  -e WAF_DEBUG="true" \\
+  -e WAF_LOG_LEVEL="info" \\
+  registry.ana-waf.com/enterprise-waf:latest
+
+echo "✅ WAF Container deployed successfully!"
+echo ""
+echo "🔗 Access Points:"
+echo "   • WAF Proxy: http://localhost:8080"
+echo "   • Management: http://localhost:9090"
+echo "   • Health Check: http://localhost:9090/waf/status"
+echo ""
+echo "📊 Monitor at: https://your-platform.com/dashboard"
+echo "📖 Docs: https://docs.ana-waf.com"
+echo ""
+echo "🛡️ Your applications are now protected by ANA WAF!"
+`;
+
+      // Create and download the script
+      const blob = new Blob([deploymentScript], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'deploy-ana-waf.sh';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "WAF Container Ready",
+        description: "Deployment script downloaded. Run with: bash deploy-ana-waf.sh",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: error instanceof Error ? error.message : "Failed to generate container package",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // GitOps Policy Management
   const handleGitopsSync = async () => {
     setLoading(true);
@@ -165,10 +260,20 @@ const DeveloperCentricWAF = () => {
         }
       });
 
-      if (error) throw new Error(error.message || 'WAF generation failed');
+      console.log('WAF generation response:', { data, error });
 
-      if (!data || !data.middleware_code) {
-        throw new Error('No middleware code generated');
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Generation failed: ${error.message || 'Unknown error'}`);
+      }
+
+      if (!data) {
+        throw new Error('No data returned from generator');
+      }
+
+      if (!data.middleware_code) {
+        console.error('Response missing middleware_code:', data);
+        throw new Error('No middleware code generated - check function logs');
       }
 
       setGeneratedConfig(data.middleware_code);
@@ -522,6 +627,11 @@ const DeveloperCentricWAF = () => {
                 <Button onClick={handleCheckDockerWAF} disabled={loading} className="w-full">
                   <Activity className="w-4 h-4 mr-2" />
                   {loading ? 'Checking WAF Status...' : 'Check WAF Status'}
+                </Button>
+                
+                <Button onClick={handleDownloadWAFContainer} disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700">
+                  <Download className="w-4 h-4 mr-2" />
+                  {loading ? 'Generating Container...' : 'Download WAF Container'}
                 </Button>
                 
                 <div className="space-y-2 text-xs text-slate-400">
