@@ -8,10 +8,13 @@ services:
     ports:
       - "8080:80"     # Main WAF proxy
       - "9090:9090"   # WAF management/metrics
-    # volumes:
-      # # Mount your custom policies directory
+    volumes:
+      # Ensure mime.types is present where nginx expects it
+      - ./mime.types:/etc/nginx/mime.types:ro
+      # Also mount to OpenResty path for compatibility
+      - ./mime.types:/usr/local/openresty/nginx/conf/mime.types:ro
+      # Optional mounts for policies and logs
       # - ./policies:/usr/local/openresty/waf/policies:ro
-      # # Mount logs for debugging
       # - ./logs:/usr/local/openresty/waf/logs
     environment:
       - WAF_DEBUG=true
