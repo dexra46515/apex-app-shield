@@ -73,6 +73,37 @@ if [ -f /usr/local/openresty/nginx/conf/nginx.conf ]; then
 
     # Ensure correct mime.types include path for OpenResty
     sed -i.tmp "s|/etc/nginx/mime.types|/usr/local/openresty/nginx/conf/mime.types|g" /usr/local/openresty/nginx/conf/nginx.conf
+
+    # Ensure mime.types exists at both locations
+    if [ ! -f /usr/local/openresty/nginx/conf/mime.types ]; then
+        echo "mime.types missing at OpenResty path; creating a minimal fallback"
+        cat > /usr/local/openresty/nginx/conf/mime.types << 'EOMT'
+types {
+    text/html                             html htm shtml;
+    text/css                              css;
+    text/xml                              xml;
+    image/gif                             gif;
+    image/jpeg                            jpeg jpg;
+    application/javascript                js;
+    application/json                      json;
+    application/octet-stream              bin exe dll;
+    image/png                             png;
+    image/svg+xml                         svg svgz;
+}
+EOMT
+    fi
+
+    if [ ! -f /etc/nginx/mime.types ]; then
+        ln -s /usr/local/openresty/nginx/conf/mime.types /etc/nginx/mime.types 2>/dev/null \
+        || cp /usr/local/openresty/nginx/conf/mime.types /etc/nginx/mime.types || true
+    fi
+
+    echo "--- mime.types diagnostics ---"
+    ls -l /usr/local/openresty/nginx/conf/mime.types || true
+    ls -l /etc/nginx/mime.types || true
+    echo "nginx.conf include lines:"
+    grep -n "mime.types" /usr/local/openresty/nginx/conf/nginx.conf || true
+    echo "--------------------------------"
     
     # Remove temp files
     rm -f /usr/local/openresty/nginx/conf/nginx.conf.tmp
