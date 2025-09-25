@@ -131,82 +131,160 @@ const DeveloperCentricWAF = () => {
           model: 'reverse-proxy',
           customerId: 'demo-customer',
           customerName: 'Demo Customer',
-          domain: 'localhost',
+          domain: 'your-domain.com',
           apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnYXpzb2NjcnRtaHR1cmh4Z2dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTI4MTEsImV4cCI6MjA3NDIyODgxMX0.rwvIWWqhCoZZgB4n92GUpBGvsYXnPAKGOp3-likDrD4',
           config: {}
         }
       });
 
       if (error) throw new Error(error.message || 'Container generation failed');
-
       if (!data) throw new Error('No deployment package generated');
 
-      // Create downloadable deployment script
-      const deploymentScript = `#!/bin/bash
-# ANA WAF Docker Deployment Script
+      // Create complete installation package
+      const installationScript = `#!/bin/bash
+# ANA WAF Complete Installation Script
 # Generated: ${new Date().toISOString()}
-# Customer ID: demo-customer
 
-echo "🐳 ANA WAF Container Deployment"
-echo "================================"
+echo "🛡️  ANA WAF Enterprise Installation"
+echo "===================================="
 
-# Check if Docker is installed
+# Check requirements
+echo "📋 Checking requirements..."
 if ! command -v docker &> /dev/null; then
     echo "❌ Docker not found. Please install Docker first."
     exit 1
 fi
 
-echo "✅ Docker found"
+if ! command -v docker-compose &> /dev/null; then
+    echo "❌ Docker Compose not found. Please install Docker Compose first."
+    exit 1
+fi
 
-# Pull the latest ANA WAF image
-echo "📦 Pulling ANA WAF container..."
-docker pull registry.ana-waf.com/enterprise-waf:latest
+echo "✅ Requirements satisfied"
 
-# Stop any existing WAF container
-docker stop ana-waf-protection 2>/dev/null || true
-docker rm ana-waf-protection 2>/dev/null || true
+# Create SSL certificates (self-signed for demo)
+echo "🔐 Generating SSL certificates..."
+mkdir -p ssl
+openssl req -x509 -newkey rsa:4096 -keyout ssl/your-domain.com.key -out ssl/your-domain.com.crt -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=your-domain.com"
 
-# Deploy WAF with customer configuration
-echo "🚀 Deploying WAF container..."
-docker run -d \\
-  --name ana-waf-protection \\
-  --restart unless-stopped \\
-  -p 8080:80 \\
-  -p 9090:9090 \\
-  -e CUSTOMER_ID="demo-customer" \\
-  -e SUPABASE_URL="https://kgazsoccrtmhturhxggi.supabase.co" \\
-  -e SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnYXpzb2NjcnRtaHR1cmh4Z2dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTI4MTEsImV4cCI6MjA3NDIyODgxMX0.rwvIWWqhCoZZgB4n92GUpBGvsYXnPAKGOp3-likDrD4" \\
-  -e WAF_DEBUG="true" \\
-  -e WAF_LOG_LEVEL="info" \\
-  registry.ana-waf.com/enterprise-waf:latest
+# Create logs directory
+mkdir -p logs
 
-echo "✅ WAF Container deployed successfully!"
+echo "🚀 Starting WAF deployment..."
+docker-compose up -d
+
+echo ""
+echo "✅ ANA WAF deployed successfully!"
 echo ""
 echo "🔗 Access Points:"
-echo "   • WAF Proxy: http://localhost:8080"
-echo "   • Management: http://localhost:9090"
-echo "   • Health Check: http://localhost:9090/waf/status"
+echo "   • WAF Proxy: https://your-domain.com (port 443)"
+echo "   • HTTP Proxy: http://your-domain.com (port 80)"
+echo "   • Monitoring: http://localhost:9090"
+echo "   • WAF Status: http://localhost/waf-status"
 echo ""
-echo "📊 Monitor at: https://your-platform.com/dashboard"
-echo "📖 Docs: https://docs.ana-waf.com"
+echo "⚙️  Configuration:"
+echo "   • Edit nginx.conf to customize WAF rules"
+echo "   • Edit docker-compose.yml to change your backend"
+echo "   • Replace SSL certificates in ssl/ directory"
 echo ""
-echo "🛡️ Your applications are now protected by ANA WAF!"
+echo "📖 Documentation: https://docs.ana-waf.com"
+echo "🛡️  Your applications are now protected!"
 `;
 
-      // Create and download the script
-      const blob = new Blob([deploymentScript], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
+      const prometheusConfig = `# Prometheus Configuration for WAF Monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'nginx-waf'
+    static_configs:
+      - targets: ['nginx-waf:9113']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  - job_name: 'waf-backend'
+    static_configs:
+      - targets: ['backend:8080']
+    metrics_path: /metrics
+    scrape_interval: 30s
+`;
+
+      const readmeContent = `# ANA WAF Enterprise Deployment
+
+## Quick Start
+
+1. Extract all files to a directory
+2. Run: \`chmod +x install.sh && ./install.sh\`
+3. Access your WAF-protected application at https://your-domain.com
+
+## Configuration
+
+### Backend Application
+Edit \`docker-compose.yml\` and replace \`your-app:latest\` with your actual application image:
+
+\`\`\`yaml
+backend:
+  image: your-actual-app:latest  # Change this
+  # ... rest of configuration
+\`\`\`
+
+### Domain Configuration
+1. Replace \`your-domain.com\` in \`nginx.conf\` with your actual domain
+2. Replace SSL certificates in \`ssl/\` directory with your real certificates
+
+### WAF Rules
+- WAF rules are automatically managed via our cloud service
+- Custom rules can be added through the management dashboard
+- Local rule overrides can be added to \`nginx.conf\`
+
+## Monitoring
+
+- Prometheus metrics: http://localhost:9090
+- WAF status endpoint: http://your-domain.com/waf-status
+- Nginx access logs: \`logs/access.log\`
+- WAF security logs: \`logs/waf.log\`
+
+## Support
+
+- Documentation: https://docs.ana-waf.com
+- Support: support@ana-waf.com
+- Dashboard: https://dashboard.ana-waf.com
+
+## Files Included
+
+- \`install.sh\` - Automated installation script
+- \`docker-compose.yml\` - Complete container orchestration
+- \`nginx.conf\` - WAF-enabled Nginx configuration
+- \`prometheus.yml\` - Monitoring configuration
+- \`README.md\` - This file
+`;
+
+      // Create ZIP file content
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      // Add all files to ZIP
+      zip.file('install.sh', installationScript);
+      zip.file('docker-compose.yml', data.docker_compose);
+      zip.file('nginx.conf', data.nginx_config);
+      zip.file('prometheus.yml', prometheusConfig);
+      zip.file('README.md', readmeContent);
+
+      // Generate and download ZIP
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'deploy-ana-waf.sh';
+      a.download = 'ana-waf-enterprise.zip';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       toast({
-        title: "WAF Container Ready",
-        description: "Deployment script downloaded. Run with: bash deploy-ana-waf.sh",
+        title: "WAF Package Downloaded",
+        description: "Complete enterprise WAF package ready for deployment",
       });
     } catch (error) {
       toast({
