@@ -69,9 +69,9 @@ sed -i "s/error_log.*info;/error_log \/usr\/local\/openresty\/waf\/logs\/error.l
 if ! grep -q "set \$waf_action" /usr/local/openresty/nginx/conf/nginx.conf; then
   echo "Injecting WAF set variables into nginx.conf"
   awk '{print} /server_name _;/ && !ins { \
-    print "        set $waf_action \"\";"; \
-    print "        set $waf_reason \"\";"; \
-    print "        set $waf_processing_time 0;"; \
+    print "        set \\$waf_action \"\";"; \
+    print "        set \\$waf_reason \"\";"; \
+    print "        set \\$waf_processing_time 0;"; \
     ins=1 }' \
     /usr/local/openresty/nginx/conf/nginx.conf > /tmp/nginx.patched && \
   mv /tmp/nginx.patched /usr/local/openresty/nginx/conf/nginx.conf
