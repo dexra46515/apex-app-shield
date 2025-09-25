@@ -9,10 +9,6 @@ services:
       - "8080:80"     # Main WAF proxy
       - "9090:9090"   # WAF management/metrics
     volumes:
-      # Ensure mime.types is present where nginx expects it
-      - ./mime.types:/etc/nginx/mime.types:ro
-      # Also mount to OpenResty path for compatibility
-      - ./mime.types:/usr/local/openresty/nginx/conf/mime.types:ro
       # Force our config and entrypoint into the container to avoid stale image issues
       - ./nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
       - ./entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
