@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     container_name: ana-waf-dev
     ports:
-      - "8080:80"     # Main WAF proxy
+      - "8081:80"     # Main WAF proxy (changed from 8080 to avoid conflicts)
       - "9090:9090"   # WAF management/metrics
     # No host bind mounts needed; files are baked into the image during build
     # volumes:
