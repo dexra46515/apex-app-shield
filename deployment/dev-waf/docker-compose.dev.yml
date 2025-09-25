@@ -8,13 +8,12 @@ services:
     ports:
       - "8080:80"     # Main WAF proxy
       - "9090:9090"   # WAF management/metrics
-    volumes:
-      # Force our config and entrypoint into the container to avoid stale image issues
-      - ./nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
-      - ./entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
-      # Optional mounts for policies and logs
-      # - ./policies:/usr/local/openresty/waf/policies:ro
-      # - ./logs:/usr/local/openresty/waf/logs
+    # No host bind mounts needed; files are baked into the image during build
+    # volumes:
+    #   - ./nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
+    #   - ./entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
+    #   # - ./policies:/usr/local/openresty/waf/policies:ro
+    #   # - ./logs:/usr/local/openresty/waf/logs
     environment:
       - WAF_DEBUG=true
       - WAF_ENABLE_REPLAY=true
