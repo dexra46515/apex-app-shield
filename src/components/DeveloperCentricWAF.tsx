@@ -741,10 +741,6 @@ deployment:
             <Bug className="w-4 h-4 mr-2" />
             Request Replay
           </TabsTrigger>
-          <TabsTrigger value="database" className="data-[state=active]:bg-slate-700">
-            <Database className="w-4 h-4 mr-2" />
-            Live Database
-          </TabsTrigger>
         </TabsList>
 
 
@@ -1315,100 +1311,6 @@ deployment:
                     </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        {/* Live Database Tab - Shows Real Data */}
-        <TabsContent value="database">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Database className="h-5 w-5 text-purple-400" />
-                  Live WAF Requests (Real Database)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Total Requests in DB:</span>
-                  <Badge variant="secondary">{replayRequests.length}</Badge>
-                </div>
-                
-                <div className="max-h-80 overflow-y-auto space-y-2">
-                  {replayRequests.length > 0 ? replayRequests.slice(0, 10).map((req) => (
-                    <div key={req.id} className="bg-slate-700 p-3 rounded text-sm">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="text-white font-medium">
-                            {req.request_method} {req.request_path}
-                          </div>
-                          <div className="text-slate-400 text-xs">
-                            IP: {req.source_ip} • Action: {req.action} • Score: {req.threat_score}
-                          </div>
-                          <div className="text-slate-500 text-xs">
-                            {new Date(req.timestamp).toLocaleString()}
-                          </div>
-                        </div>
-                        <Badge variant={req.action === 'block' ? 'destructive' : 'default'}>
-                          {req.action}
-                        </Badge>
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="text-center text-slate-400 py-6">
-                      <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <div>No WAF requests in database yet</div>
-                      <div className="text-xs">Send traffic to your WAF to see real data</div>
-                    </div>
-                  )}
-                </div>
-                
-                <Button 
-                  onClick={async () => {
-                    const { data } = await supabase.from('waf_requests').select('*').order('timestamp', { ascending: false }).limit(20);
-                    if (data) setReplayRequests(data);
-                  }} 
-                  variant="outline" 
-                  size="sm"
-                  className="w-full"
-                >
-                  <RefreshCw className="w-3 h-3 mr-1" />
-                  Refresh Database
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-red-400" />
-                  Live Security Events
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <LiveSecurityEvents />
-                
-                <div className="p-3 bg-slate-900 rounded">
-                  <div className="text-xs text-slate-300 font-semibold mb-2">Database Tables:</div>
-                  <div className="text-xs text-slate-400 space-y-1">
-                    <div>• waf_requests - All HTTP requests processed</div>
-                    <div>• security_events - Detected threats & attacks</div>
-                    <div>• debug_sessions - Active debugging sessions</div>
-                    <div>• gitops_security_policies - Policy configurations</div>
-                    <div>• customer_deployments - WAF deployment status</div>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={() => window.open('https://supabase.com/dashboard/project/kgazsoccrtmhturhxggi/editor', '_blank')}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  <ExternalLink className="w-3 h-3 mr-1" />
-                  Open Supabase Console
-                </Button>
               </CardContent>
             </Card>
           </div>
