@@ -128,10 +128,12 @@ const DeveloperCentricWAF = () => {
     try {
       const { data, error } = await supabase.functions.invoke('deployment-generator', {
         body: {
-          action: 'generate_docker_package',
-          customer_id: 'demo-customer',
-          deployment_type: 'docker',
-          domain: 'localhost:8080'
+          model: 'reverse-proxy',
+          customerId: 'demo-customer',
+          customerName: 'Demo Customer',
+          domain: 'localhost',
+          apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnYXpzb2NjcnRtaHR1cmh4Z2dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTI4MTEsImV4cCI6MjA3NDIyODgxMX0.rwvIWWqhCoZZgB4n92GUpBGvsYXnPAKGOp3-likDrD4',
+          config: {}
         }
       });
 
