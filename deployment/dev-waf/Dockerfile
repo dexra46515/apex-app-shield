@@ -9,15 +9,12 @@ RUN apk add --no-cache \
     ca-certificates \
     openssl \
     git \
-    build-base
+    build-base \
+    perl \
+    luarocks5.1
 
-# Install Lua modules using OpenResty's opm package manager
-RUN /usr/local/openresty/bin/opm get pintsized/lua-resty-http \
-    && /usr/local/openresty/bin/opm get bungle/lua-resty-template
-
-# Install luarocks and required modules
-RUN apk add --no-cache luarocks5.1 \
-    && luarocks-5.1 install luafilesystem \
+# Install required Lua modules
+RUN luarocks-5.1 install luafilesystem \
     && luarocks-5.1 install lua-cjson
 
 # Lua modules provided by Alpine packages above (lua5.1-cjson, lua5.1-filesystem)
