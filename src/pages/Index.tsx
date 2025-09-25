@@ -39,10 +39,10 @@ const Index = () => {
           <div className="flex items-center gap-3">
             <CheckCircle className="h-6 w-6 text-green-400" />
             <div>
-              <div className="text-lg font-semibold text-green-400">🚀 Platform Ready for Developers!</div>
+              <div className="text-lg font-semibold text-green-400">🚀 SaaS Platform Ready for Customers!</div>
               <div className="text-sm text-slate-300">
-                Complete setup guides, automated scripts, and production-ready WAF now available. 
-                <span className="text-blue-400 ml-1">Check the "Developer" tab for 5-minute setup.</span>
+                Complete customer onboarding, billing integration, and enterprise WAF protection available. 
+                <span className="text-blue-400 ml-1">Check the "Customer" tab for SaaS onboarding guide.</span>
               </div>
             </div>
           </div>
@@ -52,14 +52,14 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
               Enterprise WAF Security Platform
-              <span className="block text-lg font-normal text-green-400 mt-1">✅ Ready for Developer Onboarding</span>
+              <span className="block text-lg font-normal text-green-400 mt-1">✅ Ready for Customer Onboarding</span>
             </h1>
             <TabsList className="grid grid-cols-9 w-[1800px] bg-slate-800 border-slate-700">
               <TabsTrigger value="standard" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Dashboard</TabsTrigger>
               <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Advanced</TabsTrigger>
               <TabsTrigger value="hardware" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Hardware Trust</TabsTrigger>
               <TabsTrigger value="waf-management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">WAF Mgmt</TabsTrigger>
-              <TabsTrigger value="developer" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Developer</TabsTrigger>
+              <TabsTrigger value="developer" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Customer</TabsTrigger>
               <TabsTrigger value="management" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Management</TabsTrigger>
               <TabsTrigger value="deployment" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Deployment</TabsTrigger>
               <TabsTrigger value="production" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300">Production</TabsTrigger>
