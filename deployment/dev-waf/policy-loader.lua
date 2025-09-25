@@ -1,10 +1,39 @@
 -- Policy Loader Module for WAF
 local _M = {}
 
-local yaml = require "yaml"
 local json = require "cjson"
 local io = require "io"
 local lfs = require "lfs"
+
+-- Simple YAML parser (copied from waf-engine.lua)
+local function parse_yaml_policy(content)
+    local policy = { rules = {} }
+    local current_rule = nil
+    
+    for line in content:gmatch("[^\r\n]+") do
+        line = line:gsub("^%s+", ""):gsub("%s+$", "")
+        
+        if line:match("^%-") then
+            if current_rule then
+                table.insert(policy.rules, current_rule)
+            end
+            current_rule = {}
+        elseif line:match(":") and current_rule then
+            local key, value = line:match("([^:]+):%s*(.+)")
+            if key and value then
+                key = key:gsub("^%s+", ""):gsub("%s+$", "")
+                value = value:gsub("^['\"]", ""):gsub("['\"]$", "")
+                current_rule[key] = value
+            end
+        end
+    end
+    
+    if current_rule then
+        table.insert(policy.rules, current_rule)
+    end
+    
+    return policy
+end
 
 -- Policy directory
 local POLICY_DIR = "/usr/local/openresty/waf/policies"
@@ -24,7 +53,7 @@ local function load_yaml_policy(file_path)
     local content = file:read("*all")
     file:close()
     
-    local ok, policy = pcall(yaml.load, content)
+    local ok, policy = pcall(parse_yaml_policy, content)
     if not ok then
         ngx.log(ngx.ERR, "Error parsing YAML policy: " .. file_path .. " - " .. policy)
         return nil

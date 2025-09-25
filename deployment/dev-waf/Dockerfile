@@ -9,7 +9,9 @@ RUN apk add --no-cache \
     ca-certificates \
     openssl
 
-# Skip Lua dependencies for now - using built-in OpenResty modules
+# Install required Lua modules for WAF functionality
+RUN /usr/local/openresty/luajit/bin/luarocks install lua-cjson \
+    && /usr/local/openresty/luajit/bin/luarocks install luafilesystem
 
 # Create WAF directories
 RUN mkdir -p /usr/local/openresty/waf \
