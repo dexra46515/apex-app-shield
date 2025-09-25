@@ -13,6 +13,9 @@ services:
       - ./mime.types:/etc/nginx/mime.types:ro
       # Also mount to OpenResty path for compatibility
       - ./mime.types:/usr/local/openresty/nginx/conf/mime.types:ro
+      # Force our config and entrypoint into the container to avoid stale image issues
+      - ./nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
+      - ./entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
       # Optional mounts for policies and logs
       # - ./policies:/usr/local/openresty/waf/policies:ro
       # - ./logs:/usr/local/openresty/waf/logs
