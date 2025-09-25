@@ -25,10 +25,15 @@ COPY policy-loader.lua /usr/local/openresty/waf/policy-loader.lua
 COPY health-check.sh /usr/local/bin/health-check.sh
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
-# Inject safe WAF variable definitions using 'set' (avoid map syntax issues)
+# Add global WAF vars file and include it in http block to avoid 'unknown variable' in log_format
+RUN printf 'map $request_uri $waf_action { default ""; }\nmap $request_uri $waf_reason { default ""; }\nmap $request_uri $waf_processing_time { default "0"; }\n' > /usr/local/openresty/nginx/conf/waf-vars.conf \
+  && awk '{print} /^http[[:space:]]*{/ && !inc { print "    include /usr/local/openresty/nginx/conf/waf-vars.conf;"; inc=1 }' /usr/local/openresty/nginx/conf/nginx.conf > /tmp/nginx.new \
+  && mv /tmp/nginx.new /usr/local/openresty/nginx/conf/nginx.conf
+
+# Also ensure set variables exist in the main server block (harmless no-op if already present)
 RUN awk '{print} /server_name _;/ && !ins { \
-  print "        set $waf_action \"\";"; \
-  print "        set $waf_reason \"\";"; \
+  print "        set $waf_action \\\"\\\";"; \
+  print "        set $waf_reason \\\"\\\";"; \
   print "        set $waf_processing_time 0;"; \
   ins=1 }' /usr/local/openresty/nginx/conf/nginx.conf > /tmp/nginx.new \
   && mv /tmp/nginx.new /usr/local/openresty/nginx/conf/nginx.conf
