@@ -173,7 +173,7 @@ docker run -d \\
   -p 9090:9090 \\
   -e CUSTOMER_ID="demo-customer" \\
   -e SUPABASE_URL="https://kgazsoccrtmhturhxggi.supabase.co" \\
-  -e SUPABASE_ANON_KEY="${process.env.SUPABASE_ANON_KEY || 'your_key_here'}" \\
+  -e SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnYXpzb2NjcnRtaHR1cmh4Z2dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTI4MTEsImV4cCI6MjA3NDIyODgxMX0.rwvIWWqhCoZZgB4n92GUpBGvsYXnPAKGOp3-likDrD4" \\
   -e WAF_DEBUG="true" \\
   -e WAF_LOG_LEVEL="info" \\
   registry.ana-waf.com/enterprise-waf:latest
