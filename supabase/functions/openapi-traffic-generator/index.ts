@@ -72,9 +72,23 @@ serve(async (req) => {
       customPayloads = []
     } = await req.json();
 
-    if (!targetUrl) {
+    // Validate that target URL is provided and not empty
+    if (!targetUrl || !targetUrl.trim()) {
       return new Response(
         JSON.stringify({ error: 'Target URL is required' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+
+    // Validate URL format
+    try {
+      new URL(targetUrl);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Please provide a valid URL (e.g., https://api.example.com)' }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
