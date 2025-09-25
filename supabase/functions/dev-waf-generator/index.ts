@@ -62,32 +62,48 @@ serve(async (req) => {
 
 async function generateDevWAFConfig(supabase: any, config: any) {
   console.log('=== GENERATING REAL DEV WAF CONFIG ===');
-  console.log('Framework:', config.framework);
-  console.log('Security Level:', config.security_level);
+  // Normalize inputs and ensure safe defaults
+  const normalizeFramework = (fw: string) => {
+    if (!fw) return 'express';
+    const f = fw.toLowerCase();
+    if (f === 'nextjs') return 'next';
+    return f;
+  };
+  const isValidUUID = (v: string | undefined) => {
+    return !!v && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(v);
+  };
+
+  const framework = normalizeFramework(config.framework);
+  const securityLevel = config.security_level || 'standard';
+  const customerId = isValidUUID(config.customer_id) ? config.customer_id : (crypto?.randomUUID?.() || '00000000-0000-4000-8000-000000000000');
+  const configName = config.config_name || `${framework}-dev-waf-${Date.now()}`;
+
+  console.log('Framework:', framework);
+  console.log('Security Level:', securityLevel);
 
   try {
     // Generate framework-specific middleware code
-    const middlewareCode = generateFrameworkMiddleware(config.framework, config.security_level);
+    const middlewareCode = generateFrameworkMiddleware(framework, securityLevel);
     
     // Generate configuration template
-    const configTemplate = generateConfigTemplate(config.framework, config.security_level);
+    const configTemplate = generateConfigTemplate(framework, securityLevel);
     
     // Generate package.json additions
-    const packageConfig = generatePackageConfig(config.framework);
+    const packageConfig = generatePackageConfig(framework);
     
     // Generate Docker configuration
-    const dockerConfig = generateDockerConfig(config.framework);
+    const dockerConfig = generateDockerConfig(framework);
     
     // Generate environment variables
-    const environmentVars = generateEnvironmentVars(config);
+    const environmentVars = generateEnvironmentVars({ ...config, framework, security_level: securityLevel, customer_id: customerId, config_name: configName });
 
     // Store in database
     const { data, error } = await supabase
       .from('dev_waf_configs')
       .insert({
-        customer_id: config.customer_id,
-        config_name: `${config.framework}-dev-waf-${Date.now()}`,
-        framework: config.framework,
+        customer_id: customerId,
+        config_name: configName,
+        framework,
         config_template: configTemplate,
         middleware_code: middlewareCode,
         docker_config: dockerConfig,
@@ -154,6 +170,7 @@ function generateFrameworkMiddleware(framework: string, securityLevel: string): 
     case 'fastify':
       return generateFastifyMiddleware(rules);
     case 'next':
+    case 'nextjs':
       return generateNextMiddleware(rules);
     case 'django':
       return generateDjangoMiddleware(rules);
