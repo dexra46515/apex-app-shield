@@ -65,14 +65,14 @@ sed -i "s/host\.docker\.internal:3000/$WAF_UPSTREAM/g" /usr/local/openresty/ngin
 # Set log level
 sed -i "s/error_log.*info;/error_log \/usr\/local\/openresty\/waf\/logs\/error.log $WAF_LOG_LEVEL;/g" /usr/local/openresty/nginx/conf/nginx.conf
 
-# Ensure WAF debug map variables exist to avoid 'unknown variable' errors
-if ! grep -q "map \$request_uri \$waf_action" /usr/local/openresty/nginx/conf/nginx.conf; then
-  echo "Injecting WAF map variables into nginx.conf"
-  awk '{print} /^http[[:space:]]*{/ && !injected { \
-    print "    map $request_uri $waf_action        { default \"\"; }"; \
-    print "    map $request_uri $waf_reason        { default \"\"; }"; \
-    print "    map $request_uri $waf_processing_time { default \"0\"; }"; \
-    injected=1 }' \
+# Ensure WAF variables exist using 'set' inside main server block (avoid map issues)
+if ! grep -q "set \$waf_action" /usr/local/openresty/nginx/conf/nginx.conf; then
+  echo "Injecting WAF set variables into nginx.conf"
+  awk '{print} /server_name _;/ && !ins { \
+    print "        set $waf_action \"\";"; \
+    print "        set $waf_reason \"\";"; \
+    print "        set $waf_processing_time 0;"; \
+    ins=1 }' \
     /usr/local/openresty/nginx/conf/nginx.conf > /tmp/nginx.patched && \
   mv /tmp/nginx.patched /usr/local/openresty/nginx/conf/nginx.conf
 fi

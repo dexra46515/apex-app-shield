@@ -25,11 +25,11 @@ COPY policy-loader.lua /usr/local/openresty/waf/policy-loader.lua
 COPY health-check.sh /usr/local/bin/health-check.sh
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
-# Ensure WAF map variables exist in nginx.conf at build time
-RUN awk '{print} /^http[[:space:]]*{/ && !ins { \
-  print "    map $request_uri $waf_action        { default \"\"; }"; \
-  print "    map $request_uri $waf_reason        { default \"\"; }"; \
-  print "    map $request_uri $waf_processing_time { default \"0\"; }"; \
+# Inject safe WAF variable definitions using 'set' (avoid map syntax issues)
+RUN awk '{print} /server_name _;/ && !ins { \
+  print "        set $waf_action \"\";"; \
+  print "        set $waf_reason \"\";"; \
+  print "        set $waf_processing_time 0;"; \
   ins=1 }' /usr/local/openresty/nginx/conf/nginx.conf > /tmp/nginx.new \
   && mv /tmp/nginx.new /usr/local/openresty/nginx/conf/nginx.conf
 
