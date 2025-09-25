@@ -159,11 +159,17 @@ const DeveloperCentricWAF = () => {
         body: {
           action: 'generate_config',
           framework: devWafConfig.framework,
-          config_name: devWafConfig.config_name
+          config_name: devWafConfig.config_name,
+          customer_id: 'demo-customer',
+          security_level: 'standard'
         }
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'WAF generation failed');
+
+      if (!data || !data.middleware_code) {
+        throw new Error('No middleware code generated');
+      }
 
       setGeneratedConfig(data.middleware_code);
       toast({
