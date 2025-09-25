@@ -488,7 +488,7 @@ const DeveloperCentricWAF = () => {
                     </h4>
                     <div className="text-sm text-slate-300 space-y-1">
                       <div>✅ Production OpenResty-based WAF engine</div>
-                      <div>✅ Real HTTP proxy on localhost:8080</div>
+                      <div>✅ Real HTTP proxy on localhost:8081</div>
                       <div>✅ Management API on localhost:9090</div>
                       <div>✅ Prometheus metrics & Grafana dashboards</div>
                       <div>✅ Live policy hot-reloading</div>
@@ -685,15 +685,30 @@ const DeveloperCentricWAF = () => {
                   </div>
                 )}
                 
-                <Button onClick={handleCheckDockerWAF} disabled={loading} className="w-full">
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5" />
+                    <div>
+                      <div className="text-amber-400 font-semibold">Local Testing Only</div>
+                      <div className="text-sm text-amber-300 mt-1">
+                        The WAF status check works only when running locally. In Lovable preview, test with:
+                        <div className="mt-2 font-mono text-xs bg-slate-800 p-2 rounded">
+                          curl -sS http://localhost:9090/waf/status | jq .
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button onClick={handleCheckDockerWAF} disabled={true} className="w-full opacity-50 cursor-not-allowed">
                   <Activity className="w-4 h-4 mr-2" />
-                  Check WAF Status
+                  Check WAF Status (Local Only)
                 </Button>
                 
                 <div className="space-y-2 text-xs text-slate-400">
                   <div className="font-semibold">Quick Commands:</div>
                   <div>🐳 Start: <code className="bg-slate-700 px-1 rounded text-green-400">docker-compose -f deployment/dev-waf/docker-compose.dev.yml up -d</code></div>
-                  <div>🌐 Proxy: <code className="bg-slate-700 px-1 rounded text-blue-400">http://localhost:8080</code></div>
+                  <div>🌐 Proxy: <code className="bg-slate-700 px-1 rounded text-blue-400">http://localhost:8081</code></div>
                   <div>⚙️ Management: <code className="bg-slate-700 px-1 rounded text-purple-400">http://localhost:9090</code></div>
                   <div>📊 Metrics: <code className="bg-slate-700 px-1 rounded text-yellow-400">http://localhost:9090/metrics</code></div>
                 </div>
