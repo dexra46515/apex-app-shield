@@ -1,17 +1,18 @@
 # Standalone Developer WAF Container
 FROM openresty/openresty:alpine
 
-# Install additional packages for WAF functionality
+# Install additional packages for WAF functionality including luarocks
 RUN apk add --no-cache \
     curl \
     jq \
     bash \
     ca-certificates \
-    openssl
+    openssl \
+    luarocks
 
 # Install required Lua modules for WAF functionality
-RUN /usr/local/openresty/luajit/bin/luarocks install lua-cjson \
-    && /usr/local/openresty/luajit/bin/luarocks install luafilesystem
+RUN luarocks install lua-cjson \
+    && luarocks install luafilesystem
 
 # Create WAF directories
 RUN mkdir -p /usr/local/openresty/waf \
