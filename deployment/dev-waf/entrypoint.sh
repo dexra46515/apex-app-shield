@@ -65,6 +65,18 @@ sed -i "s/host\.docker\.internal:3000/$WAF_UPSTREAM/g" /usr/local/openresty/ngin
 # Set log level
 sed -i "s/error_log.*info;/error_log \/usr\/local\/openresty\/waf\/logs\/error.log $WAF_LOG_LEVEL;/g" /usr/local/openresty/nginx/conf/nginx.conf
 
+# Ensure WAF debug map variables exist to avoid 'unknown variable' errors
+if ! grep -q "map \$request_uri \$waf_action" /usr/local/openresty/nginx/conf/nginx.conf; then
+  echo "Injecting WAF map variables into nginx.conf"
+  awk '{print} /^http[[:space:]]*{/ && !injected { \
+    print "    map $request_uri $waf_action        { default \"\"; }"; \
+    print "    map $request_uri $waf_reason        { default \"\"; }"; \
+    print "    map $request_uri $waf_processing_time { default \"0\"; }"; \
+    injected=1 }' \
+    /usr/local/openresty/nginx/conf/nginx.conf > /tmp/nginx.patched && \
+  mv /tmp/nginx.patched /usr/local/openresty/nginx/conf/nginx.conf
+fi
+
 echo "WAF Configuration:"
 echo "  Debug Mode: $WAF_DEBUG"
 echo "  Replay Enabled: $WAF_ENABLE_REPLAY"
