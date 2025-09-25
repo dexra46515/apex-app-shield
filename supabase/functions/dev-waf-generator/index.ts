@@ -17,17 +17,33 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, config } = await req.json();
+    const requestBody = await req.json();
+    const { action } = requestBody;
 
     switch (action) {
       case 'generate_config':
+        // Handle the structure sent from the frontend
+        const config = {
+          framework: requestBody.framework || 'express',
+          config_name: requestBody.config_name || 'default-waf',
+          security_level: requestBody.security_level || 'standard',
+          customer_id: requestBody.customer_id || 'demo-customer'
+        };
         return await generateDevWAFConfig(supabase, config);
       case 'get_frameworks':
         return await getSupportedFrameworks();
       case 'generate_middleware':
-        return await generateMiddlewareCode(config);
+        const middlewareConfig = {
+          framework: requestBody.framework || 'express',
+          security_level: requestBody.security_level || 'standard'
+        };
+        return await generateMiddlewareCode(middlewareConfig);
       case 'create_docker_config':
-        return await createDockerConfiguration(config);
+        const dockerConfig = {
+          framework: requestBody.framework || 'express',
+          config_name: requestBody.config_name || 'default-waf'
+        };
+        return await createDockerConfiguration(dockerConfig);
       default:
         throw new Error(`Unknown action: ${action}`);
     }

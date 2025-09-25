@@ -78,7 +78,7 @@ serve(async (req) => {
           .limit(100);
 
         const recentThreats = recentEvents?.filter(e => e.blocked)?.length || 0;
-        const averageProcessingTime = recentEvents?.length > 0 ? 
+        const averageProcessingTime = (recentEvents && recentEvents.length > 0) ? 
           Math.round(Math.random() * 50 + 25) : 0; // Simulated processing time
 
         return new Response(
