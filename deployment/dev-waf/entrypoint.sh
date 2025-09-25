@@ -134,4 +134,12 @@ grep -n '\$waf_' /usr/local/openresty/nginx/conf/nginx.conf || true
 /usr/local/openresty/bin/openresty -t
 
 echo "Starting OpenResty with WAF protection..."
-exec "$@"
+
+# Start nginx/openresty in foreground
+if [ "$1" = "nginx" ]; then
+    echo "Starting nginx with arguments: $@"
+    exec /usr/local/openresty/bin/openresty -g "daemon off;"
+else
+    echo "Starting with custom command: $@"
+    exec "$@"
+fi
