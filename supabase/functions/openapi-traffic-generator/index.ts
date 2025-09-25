@@ -118,7 +118,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Generated ${testCount} OpenAPI-driven requests`,
+        mode: openApiSpec ? 'openapi' : 'generic',
+        message: `Generated ${testCount} ${openApiSpec ? 'OpenAPI-driven' : 'generic'} requests`,
         summary: {
           total: results.length,
           successful: results.filter(r => r.success).length,

@@ -64,7 +64,7 @@ const DeveloperCentricWAF = () => {
   
   // OpenAPI Testing States
   const [openApiConfig, setOpenApiConfig] = useState({
-    targetUrl: 'http://localhost:8080',
+    targetUrl: '',
     openApiSpec: '',
     testCount: 50
   });
@@ -1162,11 +1162,13 @@ deployment:
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Target URL</Label>
+                  <Label className="text-slate-300">Target URL <span className="text-red-400">*</span></Label>
                   <Input
                     placeholder="http://localhost:8080 or https://api.example.com"
                     value={openApiConfig.targetUrl}
                     onChange={(e) => setOpenApiConfig({...openApiConfig, targetUrl: e.target.value})}
+                    required
+                    aria-required="true"
                     className="bg-slate-700 border-slate-600 text-white"
                   />
                 </div>
@@ -1230,11 +1232,11 @@ deployment:
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <Button onClick={handleRunOpenAPITest} disabled={loading}>
+                  <Button onClick={handleRunOpenAPITest} disabled={loading || !openApiConfig.targetUrl.trim()}>
                     <TestTube2 className="w-4 h-4 mr-2" />
                     {openApiConfig.openApiSpec.trim() ? 'Run API Security Test' : 'Run Generic Test'}
                   </Button>
-                  <Button onClick={handleSimulateTraffic} disabled={loading} variant="outline">
+                  <Button onClick={handleSimulateTraffic} disabled={loading || !openApiConfig.targetUrl.trim()} variant="outline">
                     <Play className="w-4 h-4 mr-2" />
                     Simulate Traffic
                   </Button>
