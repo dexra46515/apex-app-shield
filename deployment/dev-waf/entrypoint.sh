@@ -83,6 +83,13 @@ echo "  Replay Enabled: $WAF_ENABLE_REPLAY"
 echo "  Upstream: $WAF_UPSTREAM"
 echo "  Log Level: $WAF_LOG_LEVEL"
 
+# Show effective nginx.conf for debugging before test
+echo "--- Effective nginx.conf (first 220 lines) ---"
+nl -ba /usr/local/openresty/nginx/conf/nginx.conf | sed -n "1,220p" || true
+
+echo "--- grep for waf variables ---"
+grep -n "waf_action\|waf_reason\|waf_processing_time" /usr/local/openresty/nginx/conf/nginx.conf || true
+
 # Test nginx configuration
 /usr/local/openresty/bin/openresty -t
 
