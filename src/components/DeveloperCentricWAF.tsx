@@ -342,35 +342,6 @@ docker compose -f docker-compose.dev.yml restart ana-waf-dev
 
 # Your app now protected: localhost:8081 → (WAF) → localhost:3000
 \`\`\``,
-    'SUPABASE_SETUP_GUIDE.md': `# 🔧 Supabase Setup Guide - ANA WAF Platform
-
-## Overview
-Your ANA WAF platform is **already connected** to Supabase! This guide shows you how to find your credentials and add additional secrets if needed.
-
-## Pre-configured ✅
-- ✅ Database tables and schema
-- ✅ Edge Functions (25+ functions deployed)  
-- ✅ API Keys configured in Lovable
-- ✅ Real-time integration working
-
-## Finding Your Supabase Details
-
-### Supabase Project URL & Anon Key
-Your Supabase details are already configured in Lovable. You can find them in:
-- Project URL: Available in your environment
-- Anon Key: Safe to use in frontend code
-- Service Role Key: Used server-side only
-
-### API Key Security
-- ✅ **Safe to share:** Supabase Project URL, Anon Key
-- ❌ **Never share publicly:** Service Role Key, Database passwords
-
-## Database Schema
-Your Supabase database includes these tables:
-- \`waf_requests\` - All HTTP requests processed by WAF
-- \`security_events\` - Security alerts and blocked requests  
-- \`customer_deployments\` - WAF deployment configurations
-- \`gitops_security_policies\` - Git-synchronized security rules`,
     'README.md': `# Enterprise WAF Security Platform
 
 A production-ready Web Application Firewall (WAF) platform with developer-centric tools, real-time monitoring, and enterprise integration capabilities.
@@ -890,28 +861,6 @@ ana-waf test -u http://localhost:8081 --strict
                   <div className="space-y-3">
                     <div className="text-sm font-semibold text-green-400">⚙️ Configuration & Setup</div>
                     <div className="space-y-2 text-xs text-slate-300">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            <span>SUPABASE_SETUP_GUIDE.md - API keys & backend</span>
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] bg-slate-900 border-slate-700">
-                          <DialogHeader>
-                            <DialogTitle className="text-white">Supabase Setup Guide</DialogTitle>
-                          </DialogHeader>
-                          <ScrollArea className="h-[60vh] pr-4">
-                            <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono">
-                              {docContentMap['SUPABASE_SETUP_GUIDE.md']}
-                            </pre>
-                          </ScrollArea>
-                        </DialogContent>
-                      </Dialog>
 
                       <Button
                         variant="ghost"
