@@ -1,6 +1,5 @@
 -- Developer WAF Engine
 local cjson = require "cjson"
-local http = require "resty.http"
 
 local WAF = {}
 WAF.__index = WAF
