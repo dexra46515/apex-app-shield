@@ -1,0 +1,139 @@
+# ANA WAF Security Policies Configuration
+# This file defines security policies that can be managed through GitOps
+# and automatically synchronized with your WAF deployment
+
+security_policies:
+  # SQL Injection Protection
+  sql_injection_protection:
+    enabled: true
+    severity: high
+    rules:
+      - pattern: '(union|select|insert|delete|update|drop|create|alter|exec|execute)\s+.*\s+(from|into|where|values)'
+        action: block
+        case_sensitive: false
+      - pattern: '(/\*|\*/|--|#|\+\s*union|\+\s*select)'
+        action: block
+        case_sensitive: false
+    rate_limit:
+      requests_per_minute: 10
+      burst_size: 5
+
+  # Cross-Site Scripting (XSS) Protection
+  xss_protection:
+    enabled: true
+    severity: medium
+    rules:
+      - pattern: '\<\s*script[^>]*\>.*?\<\s*/\s*script\s*\>'
+        action: block
+        case_sensitive: false
+      - pattern: '(onload|onerror|onclick|onmouseover|onkeyup|onfocus)\s*='
+        action: block
+        case_sensitive: false
+    rate_limit:
+      requests_per_minute: 20
+      burst_size: 10
+
+  # Path Traversal Protection
+  path_traversal_protection:
+    enabled: true
+    severity: high
+    rules:
+      - pattern: '\.\./|\.\.\\\|%2e%2e%2f|%2e%2e%5c'
+        action: block
+        case_sensitive: false
+    rate_limit:
+      requests_per_minute: 5
+      burst_size: 2
+
+  # Command Injection Protection
+  command_injection_protection:
+    enabled: true
+    severity: high
+    rules:
+      - pattern: '(\||;|&|`|\$\(|\${).*?(whoami|id|cat|ls|ps|netstat|ifconfig|ping|wget|curl)'
+        action: block
+        case_sensitive: false
+    rate_limit:
+      requests_per_minute: 5
+      burst_size: 2
+
+  # Bot Protection
+  bot_protection:
+    enabled: true
+    severity: low
+    blocked_user_agents:
+      - sqlmap
+      - nikto
+      - nessus
+      - burp
+      - havij
+      - w3af
+      - masscan
+      - nmap
+    action: block
+
+  # Rate Limiting Configuration
+  global_rate_limits:
+    requests_per_minute: 100
+    requests_per_hour: 2000
+    burst_size: 20
+    whitelist_ips:
+      - "127.0.0.1"
+      - "::1"
+      - "172.16.0.0/12"
+      - "192.168.0.0/16"
+      - "10.0.0.0/8"
+
+  # Geo-blocking (optional)
+  geo_blocking:
+    enabled: false
+    blocked_countries: []
+    allowed_countries: []
+
+  # Custom Rules (can be extended)
+  custom_rules:
+    enabled: true
+    rules: []
+
+# Deployment Configuration
+deployment:
+  # Shadow deployment phase
+  shadow_deployment:
+    enabled: true
+    duration_hours: 24
+    success_threshold: 0.95
+    
+  # Canary deployment phase  
+  canary_deployment:
+    enabled: true
+    traffic_percentage: 10
+    duration_hours: 48
+    success_threshold: 0.98
+    max_false_positive_rate: 0.02
+    
+  # Production deployment
+  production_deployment:
+    auto_promote: true
+    monitoring_enabled: true
+    rollback_on_error: true
+
+# Monitoring and Alerting
+monitoring:
+  log_level: info
+  metrics_enabled: true
+  alert_thresholds:
+    blocked_requests_per_minute: 50
+    error_rate_percentage: 5
+    response_time_ms: 1000
+  
+# Integration settings
+integrations:
+  siem:
+    enabled: false
+    endpoint: ""
+    format: "json"
+  
+  webhook:
+    enabled: false
+    url: ""
+    events: ["block", "alert", "error"]

@@ -264,11 +264,98 @@ backend:
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
+      // Security policies YAML content
+      const securityPoliciesYaml = `# ANA WAF Security Policies Configuration
+# This file defines security policies that can be managed through GitOps
+# and automatically synchronized with your WAF deployment
+
+security_policies:
+  # SQL Injection Protection
+  sql_injection_protection:
+    enabled: true
+    severity: high
+    rules:
+      - pattern: '(union|select|insert|delete|update|drop|create|alter|exec|execute)\\s+.*\\s+(from|into|where|values)'
+        action: block
+        case_sensitive: false
+      - pattern: '(/\\*|\\*/|--|#|\\+\\s*union|\\+\\s*select)'
+        action: block
+        case_sensitive: false
+    rate_limit:
+      requests_per_minute: 10
+      burst_size: 5
+
+  # Cross-Site Scripting (XSS) Protection
+  xss_protection:
+    enabled: true
+    severity: medium
+    rules:
+      - pattern: '\\<\\s*script[^>]*\\>.*?\\<\\s*/\\s*script\\s*\\>'
+        action: block
+        case_sensitive: false
+      - pattern: '(onload|onerror|onclick|onmouseover|onkeyup|onfocus)\\s*='
+        action: block
+        case_sensitive: false
+    rate_limit:
+      requests_per_minute: 20
+      burst_size: 10
+
+  # Path Traversal Protection
+  path_traversal_protection:
+    enabled: true
+    severity: high
+    rules:
+      - pattern: '\\.\\./|\\.\\.\\\\\\\|%2e%2e%2f|%2e%2e%5c'
+        action: block
+        case_sensitive: false
+    rate_limit:
+      requests_per_minute: 5
+      burst_size: 2
+
+  # Command Injection Protection
+  command_injection_protection:
+    enabled: true
+    severity: high
+    rules:
+      - pattern: '(\\||;|&|\`|\\$\\(|\\$\\{).*?(whoami|id|cat|ls|ps|netstat|ifconfig|ping|wget|curl)'
+        action: block
+        case_sensitive: false
+    rate_limit:
+      requests_per_minute: 5
+      burst_size: 2
+
+# Rate Limiting Configuration
+global_rate_limits:
+  requests_per_minute: 100
+  requests_per_hour: 2000
+  burst_size: 20
+  whitelist_ips:
+    - "127.0.0.1"
+    - "::1"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+    - "10.0.0.0/8"
+
+# Deployment Configuration
+deployment:
+  shadow_deployment:
+    enabled: true
+    duration_hours: 24
+  canary_deployment:
+    enabled: true
+    traffic_percentage: 10
+    duration_hours: 48
+  production_deployment:
+    auto_promote: true
+    monitoring_enabled: true
+`;
+
       // Add all files to ZIP
       zip.file('install.sh', installationScript);
       zip.file('docker-compose.yml', data.docker_compose);
       zip.file('nginx.conf', data.nginx_config);
       zip.file('prometheus.yml', prometheusConfig);
+      zip.file('security-policies.yaml', securityPoliciesYaml);
       zip.file('README.md', readmeContent);
 
       // Generate and download ZIP
