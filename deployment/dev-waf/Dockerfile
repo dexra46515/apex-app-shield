@@ -1,21 +1,17 @@
 # Standalone Developer WAF Container
 FROM openresty/openresty:alpine
 
-# Install additional packages for WAF functionality
+# Install required packages (use Alpine Lua 5.1 modules)
 RUN apk add --no-cache \
     curl \
     jq \
     bash \
     ca-certificates \
     openssl \
-    git \
-    build-base \
-    perl \
-    luarocks5.1
+    lua5.1-cjson \
+    lua5.1-filesystem
 
-# Install required Lua modules
-RUN luarocks-5.1 install luafilesystem \
-    && luarocks-5.1 install lua-cjson
+# Lua modules are provided by Alpine packages above (lua5.1-cjson, lua5.1-filesystem)
 
 # Lua modules provided by Alpine packages above (lua5.1-cjson, lua5.1-filesystem)
 
