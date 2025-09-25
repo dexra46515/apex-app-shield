@@ -19,7 +19,7 @@ RUN mkdir -p /usr/local/openresty/waf \
     && mkdir -p /usr/local/openresty/waf/logs \
     && mkdir -p /usr/local/openresty/waf/policies
 
-RUN ln -s /usr/local/openresty/nginx/conf/mime.types /etc/nginx/mime.types || true
+RUN mkdir -p /etc/nginx && ln -sf /usr/local/openresty/nginx/conf/mime.types /etc/nginx/mime.types || true
 
 # Copy WAF configuration and scripts
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
