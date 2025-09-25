@@ -668,54 +668,99 @@ const DeveloperCentricWAF = () => {
                   <div className="space-y-3">
                     <div className="text-sm font-semibold text-blue-400">🚀 Getting Started</div>
                     <div className="space-y-2 text-xs text-slate-300">
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => window.open('/DEVELOPER_QUICK_START.md', '_blank')}
+                      >
                         <ExternalLink className="h-3 w-3" />
                         <span>DEVELOPER_QUICK_START.md - 5-minute setup guide</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => window.open('/README.md', '_blank')}
+                      >
                         <ExternalLink className="h-3 w-3" />
                         <span>README.md - Project overview & quick start</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => window.open('/DEVELOPER_ONBOARDING_CHECKLIST.md', '_blank')}
+                      >
                         <ExternalLink className="h-3 w-3" />
                         <span>DEVELOPER_ONBOARDING_CHECKLIST.md - Implementation status</span>
-                      </div>
+                      </Button>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div className="text-sm font-semibold text-green-400">⚙️ Configuration & Setup</div>
                     <div className="space-y-2 text-xs text-slate-300">
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => window.open('/SUPABASE_SETUP_GUIDE.md', '_blank')}
+                      >
                         <ExternalLink className="h-3 w-3" />
                         <span>SUPABASE_SETUP_GUIDE.md - API keys & backend</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => window.open('/deployment/dev-waf/.env.example', '_blank')}
+                      >
                         <ExternalLink className="h-3 w-3" />
                         <span>deployment/dev-waf/.env.example - Environment config</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => window.open('/deployment/customer-integration-guide.md', '_blank')}
+                      >
                         <ExternalLink className="h-3 w-3" />
                         <span>deployment/customer-integration-guide.md - Production setup</span>
-                      </div>
+                      </Button>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div className="text-sm font-semibold text-purple-400">🛠️ Tools & Scripts</div>
                     <div className="space-y-2 text-xs text-slate-300">
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => window.open('/scripts/developer-onboard.sh', '_blank')}
+                      >
                         <Terminal className="h-3 w-3" />
                         <span>scripts/developer-onboard.sh - Automated setup</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => window.open('/scripts/check-waf-status.sh', '_blank')}
+                      >
                         <Activity className="h-3 w-3" />
                         <span>scripts/check-waf-status.sh - Health diagnostics</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => window.open('/deployment/dev-waf/test-waf.sh', '_blank')}
+                      >
                         <TestTube2 className="h-3 w-3" />
                         <span>deployment/dev-waf/test-waf.sh - WAF testing</span>
-                      </div>
+                      </Button>
                     </div>
                   </div>
                 </div>
