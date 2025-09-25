@@ -9,6 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -38,6 +40,8 @@ import {
 const DeveloperCentricWAF = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [docContent, setDocContent] = useState('');
   
   // Docker WAF States
   const [dockerStatus, setDockerStatus] = useState('stopped');
@@ -282,7 +286,134 @@ const DeveloperCentricWAF = () => {
     }
   };
 
-  // Debug Session Management
+  // Documentation content mapping
+  const docContentMap = {
+    'DEVELOPER_QUICK_START.md': `# 🚀 Developer Quick Start - ANA WAF Platform
+
+## 5-Minute Setup Guide
+
+### Prerequisites
+- Docker & Docker Compose installed
+- Node.js 16+ (for CLI tool)
+- Git access to this repository
+- Basic knowledge of web security concepts
+
+**✅ No API Keys Required!** Your project is already connected to Supabase with all backend services configured.
+
+### Step 1: Get Your WAF Running (2 minutes)
+
+\`\`\`bash
+# 1. Clone/download this repository
+git clone [your-repo-url]
+cd your-project-name
+
+# 2. Start the WAF container
+cd deployment/dev-waf
+chmod +x *.sh
+./quick-test.sh
+
+# 3. Verify it's working
+curl http://localhost:9090/waf/status
+# Expected: {"status":"active",...}
+
+curl -H "User-Agent: Attacker" "http://localhost:8081/test?q=<script>alert(1)</script>"
+# Expected: 403 Forbidden (blocked by WAF)
+\`\`\`
+
+### Step 2: Access Your Dashboard (30 seconds)
+
+1. **Main Dashboard**: http://localhost:3000
+   - Click "Developer-Centric WAF" button
+   - View real-time security events
+
+2. **WAF Management**: http://localhost:9090/waf/status
+   - Direct API access to WAF container
+
+3. **Monitoring**: http://localhost:3001 (admin/admin)
+   - Grafana dashboards with security metrics
+
+### Step 3: Integrate Your Application (1 minute)
+
+**Option A: Proxy Existing App**
+\`\`\`bash
+# Update WAF to proxy to your app
+export WAF_UPSTREAM=localhost:3000  # Your app port
+docker compose -f docker-compose.dev.yml restart ana-waf-dev
+
+# Your app now protected: localhost:8081 → (WAF) → localhost:3000
+\`\`\``,
+    'SUPABASE_SETUP_GUIDE.md': `# 🔧 Supabase Setup Guide - ANA WAF Platform
+
+## Overview
+Your ANA WAF platform is **already connected** to Supabase! This guide shows you how to find your credentials and add additional secrets if needed.
+
+## Pre-configured ✅
+- ✅ Database tables and schema
+- ✅ Edge Functions (25+ functions deployed)  
+- ✅ API Keys configured in Lovable
+- ✅ Real-time integration working
+
+## Finding Your Supabase Details
+
+### Supabase Project URL & Anon Key
+Your Supabase details are already configured in Lovable. You can find them in:
+- Project URL: Available in your environment
+- Anon Key: Safe to use in frontend code
+- Service Role Key: Used server-side only
+
+### API Key Security
+- ✅ **Safe to share:** Supabase Project URL, Anon Key
+- ❌ **Never share publicly:** Service Role Key, Database passwords
+
+## Database Schema
+Your Supabase database includes these tables:
+- \`waf_requests\` - All HTTP requests processed by WAF
+- \`security_events\` - Security alerts and blocked requests  
+- \`customer_deployments\` - WAF deployment configurations
+- \`gitops_security_policies\` - Git-synchronized security rules`,
+    'README.md': `# Enterprise WAF Security Platform
+
+A production-ready Web Application Firewall (WAF) platform with developer-centric tools, real-time monitoring, and enterprise integration capabilities.
+
+## 🚀 Quick Start (5 Minutes)
+
+### 1. Start the Platform
+\`\`\`bash
+# Automated setup (recommended)
+chmod +x scripts/developer-onboard.sh
+./scripts/developer-onboard.sh
+
+# Manual setup
+cd deployment/dev-waf
+docker-compose -f docker-compose.dev.yml up -d
+\`\`\`
+
+### 2. Access Services
+- **Main Dashboard**: http://localhost:3000
+- **WAF Proxy**: http://localhost:8081 (protects your apps)  
+- **WAF Management**: http://localhost:9090
+- **Monitoring**: http://localhost:3001 (admin/admin)
+
+### 3. Test Security
+\`\`\`bash
+# Install CLI tools
+cd cli && npm install -g .
+
+# Run security tests
+ana-waf test -u http://localhost:8081 --strict
+\`\`\`
+
+## Features
+✅ **Real WAF Protection** - SQL injection, XSS, path traversal blocking
+✅ **Developer Tools** - CLI testing, request replay, debugging
+✅ **Monitoring Stack** - Prometheus metrics + Grafana dashboards
+✅ **Enterprise Ready** - Kubernetes, CI/CD, compliance reporting`
+  };
+
+  const handleShowDoc = (docName) => {
+    setSelectedDoc(docName);
+    setDocContent(docContentMap[docName] || 'Documentation content not found.');
+  };
   const handleStartDebugSession = async () => {
     setLoading(true);
     try {
@@ -668,54 +799,174 @@ const DeveloperCentricWAF = () => {
                   <div className="space-y-3">
                     <div className="text-sm font-semibold text-blue-400">🚀 Getting Started</div>
                     <div className="space-y-2 text-xs text-slate-300">
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
-                        <ExternalLink className="h-3 w-3" />
-                        <span>DEVELOPER_QUICK_START.md - 5-minute setup guide</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
-                        <ExternalLink className="h-3 w-3" />
-                        <span>README.md - Project overview & quick start</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
-                        <ExternalLink className="h-3 w-3" />
-                        <span>DEVELOPER_ONBOARDING_CHECKLIST.md - Implementation status</span>
-                      </div>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                            onClick={() => handleShowDoc('DEVELOPER_QUICK_START.md')}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span>DEVELOPER_QUICK_START.md - 5-minute setup guide</span>
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] bg-slate-900 border-slate-700">
+                          <DialogHeader>
+                            <DialogTitle className="text-white">Developer Quick Start Guide</DialogTitle>
+                          </DialogHeader>
+                          <ScrollArea className="h-[60vh] pr-4">
+                            <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono">
+                              {docContentMap['DEVELOPER_QUICK_START.md']}
+                            </pre>
+                          </ScrollArea>
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                            onClick={() => handleShowDoc('README.md')}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span>README.md - Project overview & quick start</span>
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] bg-slate-900 border-slate-700">
+                          <DialogHeader>
+                            <DialogTitle className="text-white">README - Project Overview</DialogTitle>
+                          </DialogHeader>
+                          <ScrollArea className="h-[60vh] pr-4">
+                            <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono">
+                              {docContentMap['README.md']}
+                            </pre>
+                          </ScrollArea>
+                        </DialogContent>
+                      </Dialog>
+
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span>DEVELOPER_ONBOARDING_CHECKLIST.md - Implementation status</span>
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] bg-slate-900 border-slate-700">
+                          <DialogHeader>
+                            <DialogTitle className="text-white">Developer Onboarding Checklist</DialogTitle>
+                          </DialogHeader>
+                          <ScrollArea className="h-[60vh] pr-4">
+                            <div className="text-sm text-slate-300 space-y-4">
+                              <div className="p-4 bg-slate-800 rounded">
+                                <h3 className="text-green-400 font-semibold mb-2">✅ COMPLETE - Ready for Developers</h3>
+                                <ul className="space-y-1 text-xs">
+                                  <li>• Complete documentation package (guides, setup, troubleshooting)</li>
+                                  <li>• Working infrastructure (Docker WAF, dashboard, CLI, monitoring)</li>
+                                  <li>• Developer experience (5-minute setup, automated scripts, health checks)</li>
+                                </ul>
+                              </div>
+                              <div className="p-4 bg-slate-800 rounded">
+                                <h3 className="text-orange-400 font-semibold mb-2">⚠️ MISSING - Critical for Production</h3>
+                                <ul className="space-y-1 text-xs">
+                                  <li>• Advanced enterprise features (RBAC, audit trails)</li>
+                                  <li>• Production deployment automation</li>
+                                  <li>• Advanced configuration management</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </ScrollArea>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div className="text-sm font-semibold text-green-400">⚙️ Configuration & Setup</div>
                     <div className="space-y-2 text-xs text-slate-300">
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
-                        <ExternalLink className="h-3 w-3" />
-                        <span>SUPABASE_SETUP_GUIDE.md - API keys & backend</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span>SUPABASE_SETUP_GUIDE.md - API keys & backend</span>
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] bg-slate-900 border-slate-700">
+                          <DialogHeader>
+                            <DialogTitle className="text-white">Supabase Setup Guide</DialogTitle>
+                          </DialogHeader>
+                          <ScrollArea className="h-[60vh] pr-4">
+                            <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono">
+                              {docContentMap['SUPABASE_SETUP_GUIDE.md']}
+                            </pre>
+                          </ScrollArea>
+                        </DialogContent>
+                      </Dialog>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => toast({ title: "Environment Config", description: "Example environment variables for WAF configuration" })}
+                      >
                         <ExternalLink className="h-3 w-3" />
                         <span>deployment/dev-waf/.env.example - Environment config</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => toast({ title: "Integration Guide", description: "Production deployment and customer integration instructions" })}
+                      >
                         <ExternalLink className="h-3 w-3" />
                         <span>deployment/customer-integration-guide.md - Production setup</span>
-                      </div>
+                      </Button>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div className="text-sm font-semibold text-purple-400">🛠️ Tools & Scripts</div>
                     <div className="space-y-2 text-xs text-slate-300">
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => toast({ title: "Automated Setup", description: "Run ./scripts/developer-onboard.sh for complete automated setup" })}
+                      >
                         <Terminal className="h-3 w-3" />
                         <span>scripts/developer-onboard.sh - Automated setup</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => toast({ title: "Health Check", description: "Run ./scripts/check-waf-status.sh to verify WAF health" })}
+                      >
                         <Activity className="h-3 w-3" />
                         <span>scripts/check-waf-status.sh - Health diagnostics</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 p-2 bg-slate-900 rounded hover:bg-slate-800 cursor-pointer w-full justify-start h-auto text-xs text-slate-300"
+                        onClick={() => toast({ title: "WAF Testing", description: "Security test script for validating WAF protection" })}
+                      >
                         <TestTube2 className="h-3 w-3" />
                         <span>deployment/dev-waf/test-waf.sh - WAF testing</span>
-                      </div>
+                      </Button>
                     </div>
                   </div>
                 </div>
