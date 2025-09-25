@@ -60,10 +60,23 @@ EOF
 fi
 
 # Update nginx configuration with runtime values
-sed -i "s/host\.docker\.internal:3000/$WAF_UPSTREAM/g" /usr/local/openresty/nginx/conf/nginx.conf
-
-# Set log level
-sed -i "s/error_log.*info;/error_log \/usr\/local\/openresty\/waf\/logs\/error.log $WAF_LOG_LEVEL;/g" /usr/local/openresty/nginx/conf/nginx.conf
+if [ -f /usr/local/openresty/nginx/conf/nginx.conf ]; then
+    echo "Updating nginx.conf with runtime values..."
+    # Create backup
+    cp /usr/local/openresty/nginx/conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf.backup
+    
+    # Update upstream with proper escaping
+    sed -i.tmp "s|host\.docker\.internal:3000|$WAF_UPSTREAM|g" /usr/local/openresty/nginx/conf/nginx.conf
+    
+    # Update log level with proper escaping
+    sed -i.tmp "s|error_log /usr/local/openresty/waf/logs/error.log info;|error_log /usr/local/openresty/waf/logs/error.log $WAF_LOG_LEVEL;|g" /usr/local/openresty/nginx/conf/nginx.conf
+    
+    # Remove temp files
+    rm -f /usr/local/openresty/nginx/conf/nginx.conf.tmp
+else
+    echo "ERROR: nginx.conf not found!"
+    exit 1
+fi
 
 # WAF variables are already defined in nginx.conf via map directives
 echo "WAF variables already defined in nginx.conf"
