@@ -525,7 +525,7 @@ deployment:
 
       setTestResults(data);
       toast({
-        title: "OpenAPI Test Completed",
+        title: parsedSpec ? "OpenAPI Test Completed" : "Generic Security Test Completed",
         description: parsedSpec 
           ? `${data.summary.total} requests sent using OpenAPI spec, ${data.summary.blocked} blocked`
           : `${data.summary.total} generic requests sent, ${data.summary.blocked} blocked`,
