@@ -70,6 +70,9 @@ if [ -f /usr/local/openresty/nginx/conf/nginx.conf ]; then
     
     # Update log level with proper escaping
     sed -i.tmp "s|error_log /usr/local/openresty/waf/logs/error.log info;|error_log /usr/local/openresty/waf/logs/error.log $WAF_LOG_LEVEL;|g" /usr/local/openresty/nginx/conf/nginx.conf
+
+    # Ensure correct mime.types include path for OpenResty
+    sed -i.tmp "s|/etc/nginx/mime.types|/usr/local/openresty/nginx/conf/mime.types|g" /usr/local/openresty/nginx/conf/nginx.conf
     
     # Remove temp files
     rm -f /usr/local/openresty/nginx/conf/nginx.conf.tmp
