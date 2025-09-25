@@ -526,7 +526,9 @@ deployment:
       setTestResults(data);
       toast({
         title: "OpenAPI Test Completed",
-        description: `${data.summary.total} requests sent, ${data.summary.blocked} blocked`,
+        description: parsedSpec 
+          ? `${data.summary.total} requests sent using OpenAPI spec, ${data.summary.blocked} blocked`
+          : `${data.summary.total} generic requests sent, ${data.summary.blocked} blocked`,
       });
     } catch (error) {
       toast({
@@ -1230,12 +1232,17 @@ deployment:
                 <div className="grid grid-cols-2 gap-4">
                   <Button onClick={handleRunOpenAPITest} disabled={loading}>
                     <TestTube2 className="w-4 h-4 mr-2" />
-                    Run Security Test
+                    {openApiConfig.openApiSpec.trim() ? 'Run API Security Test' : 'Run Generic Test'}
                   </Button>
                   <Button onClick={handleSimulateTraffic} disabled={loading} variant="outline">
                     <Play className="w-4 h-4 mr-2" />
                     Simulate Traffic
                   </Button>
+                </div>
+                
+                <div className="text-xs text-slate-400 space-y-1">
+                  <div>• <strong>API Security Test:</strong> {openApiConfig.openApiSpec.trim() ? 'Uses your OpenAPI spec for targeted testing' : 'Uses generic endpoints when no spec provided'}</div>
+                  <div>• <strong>Simulate Traffic:</strong> Sends basic HTTP patterns for general WAF testing</div>
                 </div>
                 
                 <div className="text-xs text-slate-400 space-y-1">

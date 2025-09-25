@@ -72,9 +72,9 @@ serve(async (req) => {
       customPayloads = []
     } = await req.json();
 
-    if (!openApiSpec || !targetUrl) {
+    if (!targetUrl) {
       return new Response(
-        JSON.stringify({ error: 'OpenAPI spec and target URL are required' }),
+        JSON.stringify({ error: 'Target URL is required' }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -82,7 +82,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`🚀 Generating ${testCount} requests from OpenAPI spec for ${targetUrl}`);
+    console.log(`🚀 Generating ${testCount} requests for ${targetUrl}${openApiSpec ? ' using OpenAPI spec' : ' with generic patterns'}`);
 
     const results = await generateOpenAPITraffic(
       openApiSpec as OpenAPISpec, 
@@ -133,7 +133,7 @@ serve(async (req) => {
 });
 
 async function generateOpenAPITraffic(
-  spec: OpenAPISpec, 
+  spec: OpenAPISpec | null, 
   targetUrl: string, 
   testCount: number, 
   includeAttacks: boolean,
@@ -143,9 +143,9 @@ async function generateOpenAPITraffic(
   const results: Array<any> = [];
   const baseUrl = new URL(targetUrl).origin;
   
-  // Extract endpoints from OpenAPI spec
-  const endpoints = extractEndpoints(spec);
-  console.log(`📋 Found ${endpoints.length} endpoints in OpenAPI spec`);
+  // Extract endpoints from OpenAPI spec or use generic endpoints
+  const endpoints = spec ? extractEndpoints(spec) : getGenericEndpoints();
+  console.log(`📋 ${spec ? `Found ${endpoints.length} endpoints in OpenAPI spec` : `Using ${endpoints.length} generic endpoints`}`);
 
   for (let i = 0; i < testCount; i++) {
     const shouldAttack = includeAttacks && Math.random() < attackRatio;
@@ -155,7 +155,7 @@ async function generateOpenAPITraffic(
     if (shouldAttack) {
       requestData = generateAttackRequest(endpoint, baseUrl, customPayloads);
     } else {
-      requestData = generateLegitRequest(endpoint, baseUrl, spec);
+      requestData = spec ? generateLegitRequest(endpoint, baseUrl, spec) : generateGenericRequest(endpoint, baseUrl);
     }
 
     const startTime = Date.now();
@@ -541,4 +541,73 @@ async function storeTestResults(supabase: any, results: any[], targetUrl: string
   } catch (error) {
     console.error('❌ Error storing test results:', error);
   }
+}
+
+function getGenericEndpoints() {
+  // Generic endpoints for testing when no OpenAPI spec is provided
+  return [
+    { path: '/', method: 'GET', operation: {} },
+    { path: '/api', method: 'GET', operation: {} },
+    { path: '/api/users', method: 'GET', operation: {} },
+    { path: '/api/users/{id}', method: 'GET', operation: {} },
+    { path: '/api/users', method: 'POST', operation: {} },
+    { path: '/api/users/{id}', method: 'PUT', operation: {} },
+    { path: '/api/users/{id}', method: 'DELETE', operation: {} },
+    { path: '/api/products', method: 'GET', operation: {} },
+    { path: '/api/products/{id}', method: 'GET', operation: {} },
+    { path: '/api/search', method: 'GET', operation: {} },
+    { path: '/login', method: 'POST', operation: {} },
+    { path: '/register', method: 'POST', operation: {} },
+    { path: '/logout', method: 'POST', operation: {} },
+    { path: '/profile', method: 'GET', operation: {} },
+    { path: '/admin', method: 'GET', operation: {} },
+    { path: '/dashboard', method: 'GET', operation: {} },
+    { path: '/settings', method: 'GET', operation: {} },
+    { path: '/contact', method: 'POST', operation: {} },
+    { path: '/about', method: 'GET', operation: {} },
+    { path: '/health', method: 'GET', operation: {} }
+  ];
+}
+
+function generateGenericRequest(endpoint: any, baseUrl: string) {
+  const url = new URL(endpoint.path.replace(/\{([^}]+)\}/g, (match: string, param: string) => {
+    // Replace path parameters with realistic values
+    return generateParameterValue(param, 'path');
+  }), baseUrl);
+
+  const headers: { [key: string]: string } = {
+    'User-Agent': 'Generic-Traffic-Generator/1.0',
+    'Accept': 'application/json, text/html, */*'
+  };
+
+  let body = null;
+
+  // Add some generic query parameters for GET requests
+  if (endpoint.method === 'GET' && Math.random() > 0.5) {
+    const queryParams = ['limit', 'offset', 'sort', 'filter', 'search', 'page'];
+    const param = queryParams[Math.floor(Math.random() * queryParams.length)];
+    url.searchParams.set(param, generateParameterValue(param, 'query'));
+  }
+
+  // Add generic body for POST/PUT/PATCH requests  
+  if (['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
+    headers['Content-Type'] = 'application/json';
+    
+    const genericBodies = [
+      { name: 'Test User', email: 'test@example.com' },
+      { title: 'Test Item', description: 'Test description', status: 'active' },
+      { username: 'testuser', password: 'password123' },
+      { query: 'test search', category: 'general' },
+      { message: 'Hello world', priority: 'normal' }
+    ];
+    
+    body = JSON.stringify(genericBodies[Math.floor(Math.random() * genericBodies.length)]);
+  }
+
+  return {
+    url: url.toString(),
+    method: endpoint.method,
+    headers,
+    body
+  };
 }
