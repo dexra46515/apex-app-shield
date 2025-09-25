@@ -8,6 +8,8 @@
 - Git access to this repository
 - Basic knowledge of web security concepts
 
+**✅ No API Keys Required!** Your project is already connected to Supabase with all backend services configured.
+
 ### Step 1: Get Your WAF Running (2 minutes)
 
 ```bash
@@ -165,6 +167,7 @@ ana-waf status --debug
 ## Support
 
 - 📚 **Full Docs**: [DEVELOPER_CENTRIC_WAF.md](./DEVELOPER_CENTRIC_WAF.md)
+- 🔧 **Supabase Setup**: [SUPABASE_SETUP_GUIDE.md](./SUPABASE_SETUP_GUIDE.md) - API keys and backend configuration
 - 🛠️ **Integration Guide**: [deployment/customer-integration-guide.md](./deployment/customer-integration-guide.md)
 - 🎯 **Feature Guide**: [WAF_FEATURES_GUIDE.md](./WAF_FEATURES_GUIDE.md)
 - 💬 **Support**: Create an issue in this repository

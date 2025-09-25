@@ -5,6 +5,9 @@
 
 set -e
 
+# Make this script executable
+chmod +x "$0" 2>/dev/null || true
+
 # Color codes
 GREEN='\033[0;32m'
 RED='\033[0;31m'
